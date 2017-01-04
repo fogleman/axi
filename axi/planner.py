@@ -97,6 +97,18 @@ class Piece(object):
     def velocity(self, t):
         return self.v1 + self.acceleration * t
 
+class JerkPiece(object):
+    # a constant jerk for a duration of time
+    def __init__(self, p1, p2, v1, a1, jerk, duration):
+        self.p1 = p1
+        self.p2 = p2
+        self.v1 = v1
+        self.v2 = v1 + a1 * duration + jerk * duration * duration / 2
+        self.a1 = a1
+        self.a2 = a1 + jerk * duration
+        self.jerk = jerk
+        self.duration = duration
+
 class Segment(object):
     # a segment is a line segment between two points, which will be broken
     # up into pieces by the planner
@@ -111,11 +123,11 @@ class Segment(object):
 
 class Planner(object):
     # a planner has a constant acceleration and a max crusing velocity
-    def __init__(self, acceleration, max_velocity, corner_factor, jerk):
+    def __init__(self, acceleration, max_velocity, corner_factor):
         self.acceleration = acceleration
         self.max_velocity = max_velocity
         self.corner_factor = corner_factor
-        self.jerk = jerk
+        self.jerk_factor = 0.5
 
     def plan(self, points):
         a = self.acceleration
@@ -205,15 +217,27 @@ class Planner(object):
         return result
 
     def smooth_group(self, pieces, a):
-        j = self.jerk
+        if abs(a) < EPS:
+            return pieces # TODO: convert to jerk pieces
         t = sum(x.duration for x in pieces)
-        vi = pieces[0].v1
-        vf = pieces[-1].v2
-        print a, len(pieces), vi, vf, t
-        # /|___|\
-        jf = 0.5
-        t1 = t * j
-        t2 = t * (1 - j)
+        # vi = pieces[0].v1
+        # vf = pieces[-1].v2
+        # s = (vf + vi) / 2 * t
+        jf = self.jerk_factor
+        t1 = t * jf
+        t2 = t - 2 * t1
+        amax = a / (1 - jf)
+        jerk = amax / t1
+        # jerk for t1, a = 0 to amax
+        # accel for t2, a = amax
+        # -jerk for t1, a = amax to 0
+        # blocks = [
+        #     JerkBlock(0, jerk, t1),
+        #     JerkBlock(amax, jerk, t2),
+        #     JerkBlock(0, jerk, t1),
+        # ]
+        # s = vi * t + ai * t * t / 2 + j * t * t * t / 6
+        print a, len(pieces), t, jerk, amax
         return pieces
 
 # vf = vi + a * t
@@ -221,21 +245,25 @@ class Planner(object):
 # s = vi * t + a * t * t / 2
 # vf * vf = vi * vi + 2 * a * s
 
-def chop_piece(p, dt):
-    result = []
-    t = 0
-    while t < p.duration:
-        t1 = t
-        t2 = min(t + dt, p.duration)
-        p1 = p.point(t1)
-        p2 = p.point(t2)
-        v = (p.velocity(t1) + p.velocity(t2)) / 2
-        result.append(Piece(p1, p2, v, 0, t2 - t1))
-        t += dt
-    return result
+# af = ai + j * t
+# vf = vi + ai * t + j * t * t / 2
+# sf = si + vi * t + ai * t * t / 2 + j * t * t * t / 6
 
-def chop_pieces(pieces, dt):
-    result = []
-    for piece in pieces:
-        result.extend(chop_piece(piece, dt))
-    return result
+# def chop_piece(p, dt):
+#     result = []
+#     t = 0
+#     while t < p.duration:
+#         t1 = t
+#         t2 = min(t + dt, p.duration)
+#         p1 = p.point(t1)
+#         p2 = p.point(t2)
+#         v = (p.velocity(t1) + p.velocity(t2)) / 2
+#         result.append(Piece(p1, p2, v, 0, t2 - t1))
+#         t += dt
+#     return result
+
+# def chop_pieces(pieces, dt):
+#     result = []
+#     for piece in pieces:
+#         result.extend(chop_piece(piece, dt))
+#     return result

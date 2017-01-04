@@ -17,12 +17,12 @@ def main():
         points = circle(0, 0, r, 90) + points
     planner = Planner(acceleration=50, max_velocity=200, corner_factor=1)
     pieces = planner.plan(points)
-    print 'var PIECES = ['
-    for p in pieces:
-        record = (p.p1.x, p.p1.y, p.p2.x, p.p2.y, p.acceleration, p.duration)
-        print '[%s],' % ','.join(map(str, record))
-    print '];'
-    # pieces = planner.smooth(pieces)
+    # print 'var PIECES = ['
+    # for p in pieces:
+    #     record = (p.p1.x, p.p1.y, p.p2.x, p.p2.y, p.acceleration, p.duration)
+    #     print '[%s],' % ','.join(map(str, record))
+    # print '];'
+    pieces = planner.smooth(pieces)
     # for p in pieces:
     #     print p.acceleration, p.duration
 
