@@ -3,6 +3,7 @@ from __future__ import division
 from collections import namedtuple
 from itertools import groupby
 from math import sqrt, hypot
+import numpy
 
 EPS = 1e-9
 
@@ -65,6 +66,19 @@ def trapezoid(s, vi, vmax, vf, a, p1, p4):
     p3 = p1.lerps(p4, s - s3)
     return Trapezoid(s1, s2, s3, t1, t2, t3, p1, p2, p3, p4)
 
+def acceleration_duration(s, vi, a):
+    # compute the amount of time to travel distance s while accelerating
+    vf = sqrt(vi * vi + 2 * a * s)
+    t = (vf - vi) / a
+    return t
+
+def jerk_duration(s, vi, ai, j):
+    # compute the amount of time to travel distance s while jerking
+    # TODO: remove numpy dependency?
+    roots = numpy.roots([j / 6, ai / 2, vi, -s])
+    roots = roots.real[abs(roots.imag) < EPS]
+    return min(x for x in roots if x > 0)
+
 def corner_velocity(s1, s2, vmax, a, delta):
     # compute a maximum velocity at the corner of two segments
     # https://onehossshay.wordpress.com/2011/09/24/improving_grbl_cornering_algorithm/
@@ -77,41 +91,54 @@ def corner_velocity(s1, s2, vmax, a, delta):
     v = sqrt((a * delta * sine) / (1 - sine))
     return min(v, vmax)
 
-class Piece(object):
-    # a piece is a constant acceleration for a duration of time
-    # the planner generates these pieces
-    def __init__(self, p1, p2, v1, acceleration, duration):
-        self.p1 = p1
-        self.p2 = p2
-        self.v1 = v1
-        self.v2 = v1 + acceleration * duration
-        self.acceleration = acceleration
-        self.duration = duration
+Instant = namedtuple('Instant', ['t', 'p', 's', 'v', 'a', 'j'])
 
-    def point(self, t):
-        return self.p1.lerps(self.p2, self.distance(t))
-
-    def distance(self, t):
-        return self.v1 * t + self.acceleration * t * t / 2
-
-    def velocity(self, t):
-        return self.v1 + self.acceleration * t
-
-class JerkPiece(object):
+class Block(object):
     # a constant jerk for a duration of time
-    def __init__(self, p1, p2, v1, a1, jerk, duration):
+    def __init__(self, j, t, vi, ai, p1, p2):
+        self.j = j
+        self.t = t
+        # TODO: si?
+        self.vi = vi
+        self.ai = ai
         self.p1 = p1
         self.p2 = p2
-        self.v1 = v1
-        self.v2 = v1 + a1 * duration + jerk * duration * duration / 2
-        self.a1 = a1
-        self.a2 = a1 + jerk * duration
-        self.jerk = jerk
-        self.duration = duration
+        self.s = p1.distance(p2)
+        self.vf = vi + ai * t + j * t * t / 2
+        self.af = ai + j * t
+
+    def split(self, t):
+        x = self.instant(t)
+        b1 = Block(self.j, t, self.vi, self.ai, self.p1, x.p)
+        b2 = Block(self.j, self.t - t, x.v, x.a, x.p, self.p2)
+        return b1, b2
+
+    @property
+    def initial(self):
+        return self.instant(0)
+
+    @property
+    def final(self):
+        return self.instant(self.t)
+
+    def instant(self, t):
+        t2 = t * t
+        t3 = t2 * t
+        t2_2 = t2 / 2
+        t3_6 = t3 / 6
+        j = self.j
+        a = self.ai + self.j * t
+        v = self.vi + self.ai * t + self.j * t2_2
+        s = self.vi * t + self.ai * t2_2 + self.j * t3_6
+        p = self.p1.lerps(self.p2, s)
+        return Instant(t, p, s, v, a, j)
+
+def accelerate(a, t, vi, p1, p2):
+    return Block(0, t, vi, a, p1, p2)
 
 class Segment(object):
     # a segment is a line segment between two points, which will be broken
-    # up into pieces by the planner
+    # up into blocks by the planner
     def __init__(self, p1, p2):
         self.p1 = p1
         self.p2 = p2
@@ -119,126 +146,168 @@ class Segment(object):
         self.vector = p2.sub(p1).normalize()
         self.max_entry_velocity = 0
         self.entry_velocity = 0
-        self.pieces = []
+        self.blocks = []
 
 class Planner(object):
-    # a planner has a constant acceleration and a max crusing velocity
-    def __init__(self, acceleration, max_velocity, corner_factor):
+    def __init__(self, acceleration, max_velocity, corner_factor, jerk_factor):
         self.acceleration = acceleration
         self.max_velocity = max_velocity
         self.corner_factor = corner_factor
-        self.jerk_factor = 0.5
+        self.jerk_factor = jerk_factor
 
     def plan(self, points):
         a = self.acceleration
         vmax = self.max_velocity
+        cf = self.corner_factor
+        return constant_acceleration_plan(points, a, vmax, cf)
 
-        # make sure points are Point objects
-        points = [Point(x, y) for x, y in points]
-
-        # create segments for each consecutive pair of points
-        segments = [Segment(p1, p2) for p1, p2 in zip(points, points[1:])]
-
-        # compute a max_entry_velocity for each segment
-        # based on the angle formed by the two segments at the vertex
-        for s1, s2 in zip(segments, segments[1:]):
-            v = corner_velocity(s1, s2, vmax, a, self.corner_factor)
-            s2.max_entry_velocity = v
-
-        # add a dummy segment at the end to force a final velocity of zero
-        segments.append(Segment(points[-1], points[-1]))
-
-        # loop over segments
-        i = 0
-        while i < len(segments) - 1:
-            # pull out some variables
-            segment = segments[i]
-            next_segment = segments[i + 1]
-            s = segment.length
-            vi = segment.entry_velocity
-            vexit = next_segment.max_entry_velocity
-            p1 = segment.p1
-            p2 = segment.p2
-
-            # determine which profile to use for this segment
-            # TODO: rearrange these cases for better flow?
-
-            # accelerate? /
-            vf = sqrt(vi * vi + 2 * a * s)
-            if vf <= vexit:
-                t = (vf - vi) / a
-                segment.pieces = [
-                    Piece(p1, p2, vi, a, t),
-                ]
-                next_segment.entry_velocity = vf
-                i += 1
-                continue
-
-            # accelerate, cruise, decelerate? /---\
-            m = triangle(s, vi, vexit, a, p1, p2)
-            if m.s1 > -EPS and m.s2 > -EPS and m.vmax >= vmax:
-                z = trapezoid(s, vi, vmax, vexit, a, p1, p2)
-                segment.pieces = [
-                    Piece(z.p1, z.p2, vi, a, z.t1),
-                    Piece(z.p2, z.p3, vmax, 0, z.t2),
-                    Piece(z.p3, z.p4, vmax, -a, z.t3),
-                ]
-                next_segment.entry_velocity = vexit
-                i += 1
-                continue
-
-            # accelerate, decelerate? /\
-            if m.s1 > -EPS and m.s2 > -EPS:
-                segment.pieces = [
-                    Piece(m.p1, m.p2, vi, a, m.t1),
-                    Piece(m.p2, m.p3, m.vmax, -a, m.t2),
-                ]
-                next_segment.entry_velocity = vexit
-                i += 1
-                continue
-
-            # too fast! update max_entry_velocity and backtrack
-            segment.max_entry_velocity = sqrt(vexit * vexit + 2 * a * s)
-            i -= 1 # TODO: support non-zero initial velocity?
-
-        # concatenate all of the pieces
-        pieces = []
-        for segment in segments:
-            pieces.extend(segment.pieces)
-
-        # filter out zero-duration pieces and return
-        pieces = [x for x in pieces if x.duration > EPS]
-        return pieces
-
-    def smooth(self, pieces):
-        result = []
-        for a, g in groupby(pieces, key=lambda x: x.acceleration):
-            result.extend(self.smooth_group(list(g), a))
-        return result
-
-    def smooth_group(self, pieces, a):
-        if abs(a) < EPS:
-            return pieces # TODO: convert to jerk pieces
-        t = sum(x.duration for x in pieces)
-        # vi = pieces[0].v1
-        # vf = pieces[-1].v2
-        # s = (vf + vi) / 2 * t
+    def jerk_plan(self, points):
+        blocks = self.plan(points)
         jf = self.jerk_factor
-        t1 = t * jf
-        t2 = t - 2 * t1
-        amax = a / (1 - jf)
-        jerk = amax / t1
-        # jerk for t1, a = 0 to amax
-        # accel for t2, a = amax
-        # -jerk for t1, a = amax to 0
-        # blocks = [
-        #     JerkBlock(0, jerk, t1),
-        #     JerkBlock(amax, jerk, t2),
-        #     JerkBlock(0, jerk, t1),
-        # ]
-        # s = vi * t + ai * t * t / 2 + j * t * t * t / 6
-        print a, len(pieces), t, jerk, amax
-        return pieces
+        return constant_jerk_plan(blocks, jf)
+
+def constant_acceleration_plan(points, a, vmax, cf):
+    # make sure points are Point objects
+    points = [Point(x, y) for x, y in points]
+
+    # create segments for each consecutive pair of points
+    segments = [Segment(p1, p2) for p1, p2 in zip(points, points[1:])]
+
+    # compute a max_entry_velocity for each segment
+    # based on the angle formed by the two segments at the vertex
+    for s1, s2 in zip(segments, segments[1:]):
+        v = corner_velocity(s1, s2, vmax, a, cf)
+        s2.max_entry_velocity = v
+
+    # add a dummy segment at the end to force a final velocity of zero
+    segments.append(Segment(points[-1], points[-1]))
+
+    # loop over segments
+    i = 0
+    while i < len(segments) - 1:
+        # pull out some variables
+        segment = segments[i]
+        next_segment = segments[i + 1]
+        s = segment.length
+        vi = segment.entry_velocity
+        vexit = next_segment.max_entry_velocity
+        p1 = segment.p1
+        p2 = segment.p2
+
+        # determine which profile to use for this segment
+        # TODO: rearrange these cases for better flow?
+
+        # accelerate? /
+        vf = sqrt(vi * vi + 2 * a * s)
+        if vf <= vexit:
+            t = (vf - vi) / a
+            segment.blocks = [
+                accelerate(a, t, vi, p1, p2),
+            ]
+            next_segment.entry_velocity = vf
+            i += 1
+            continue
+
+        # accelerate, cruise, decelerate? /---\
+        m = triangle(s, vi, vexit, a, p1, p2)
+        if m.s1 > -EPS and m.s2 > -EPS and m.vmax >= vmax:
+            z = trapezoid(s, vi, vmax, vexit, a, p1, p2)
+            segment.blocks = [
+                accelerate(a, z.t1, vi, z.p1, z.p2),
+                accelerate(0, z.t2, vmax, z.p2, z.p3),
+                accelerate(-a, z.t3, vmax, z.p3, z.p4),
+            ]
+            next_segment.entry_velocity = vexit
+            i += 1
+            continue
+
+        # accelerate, decelerate? /\
+        if m.s1 > -EPS and m.s2 > -EPS:
+            segment.blocks = [
+                accelerate(a, m.t1, vi, m.p1, m.p2),
+                accelerate(-a, m.t2, m.vmax, m.p2, m.p3),
+            ]
+            next_segment.entry_velocity = vexit
+            i += 1
+            continue
+
+        # too fast! update max_entry_velocity and backtrack
+        segment.max_entry_velocity = sqrt(vexit * vexit + 2 * a * s)
+        i -= 1 # TODO: support non-zero initial velocity?
+
+    # concatenate all of the blocks
+    blocks = []
+    for segment in segments:
+        blocks.extend(segment.blocks)
+
+    # filter out zero-duration blocks and return
+    blocks = [x for x in blocks if x.t > EPS]
+    return blocks
+
+def constant_jerk_plan(blocks, jf):
+    # TODO: ignore blocks that already have a jerk?
+    result = []
+    for a, g in groupby(blocks, key=lambda x: x.ai):
+        result.extend(_constant_jerk_plan(list(g), jf, a))
+    return result
+
+def _constant_jerk_plan(blocks, jf, a):
+    if abs(a) < EPS:
+        return blocks
+    result = []
+    duration = sum(x.t for x in blocks)
+    t1 = duration * jf
+    t2 = duration - 2 * t1
+    amax = a / (1 - jf)
+    j = amax / t1
+    vi = blocks[0].vi
+    ai = 0
+    s1 = vi * t1 + ai * t1 * t1 / 2 + j * t1 * t1 * t1 / 6
+    v1 = vi + ai * t1 + j * t1 * t1 / 2
+    s2 = v1 * t2 + amax * t2 * t2 / 2
+    blocks1, temp = split_blocks(blocks, s1)
+    blocks2, blocks3 = split_blocks(temp, s2)
+    # jerk to a = amax
+    for b in blocks1:
+        t = jerk_duration(b.s, vi, ai, j)
+        block = Block(j, t, vi, ai, b.p1, b.p2)
+        result.append(block)
+        vi = block.vf
+        ai = block.af
+    # accelerate at amax
+    for b in blocks2:
+        t = acceleration_duration(b.s, vi, ai)
+        block = Block(0, t, vi, ai, b.p1, b.p2)
+        result.append(block)
+        vi = block.vf
+        ai = block.af
+    # jerk to a = 0
+    for b in blocks3:
+        t = jerk_duration(b.s, vi, ai, -j)
+        block = Block(-j, t, vi, ai, b.p1, b.p2)
+        result.append(block)
+        vi = block.vf
+        ai = block.af
+    return result
+
+def split_blocks(blocks, s):
+    before = []
+    after = []
+    total = 0
+    for b in blocks:
+        s1 = total
+        s2 = total + b.s
+        if s2 < s + EPS:
+            before.append(b)
+        elif s1 > s - EPS:
+            after.append(b)
+        else:
+            t = acceleration_duration(s - s1, b.vi, b.ai)
+            b1, b2 = b.split(t)
+            before.append(b1)
+            after.append(b2)
+        total = s2
+    return before, after
 
 # vf = vi + a * t
 # s = (vf + vi) / 2 * t
@@ -249,21 +318,21 @@ class Planner(object):
 # vf = vi + ai * t + j * t * t / 2
 # sf = si + vi * t + ai * t * t / 2 + j * t * t * t / 6
 
-# def chop_piece(p, dt):
+# def chop_block(p, dt):
 #     result = []
 #     t = 0
-#     while t < p.duration:
+#     while t < p.t:
 #         t1 = t
-#         t2 = min(t + dt, p.duration)
+#         t2 = min(t + dt, p.t)
 #         p1 = p.point(t1)
 #         p2 = p.point(t2)
 #         v = (p.velocity(t1) + p.velocity(t2)) / 2
-#         result.append(Piece(p1, p2, v, 0, t2 - t1))
+#         result.append(accelerate(0, t2 - t1, v, p1, p2))
 #         t += dt
 #     return result
 
-# def chop_pieces(pieces, dt):
+# def chop_blocks(blocks, dt):
 #     result = []
-#     for piece in pieces:
-#         result.extend(chop_piece(piece, dt))
+#     for block in blocks:
+#         result.extend(chop_block(block, dt))
 #     return result
