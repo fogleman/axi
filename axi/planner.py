@@ -1,5 +1,6 @@
 from __future__ import division
 
+from bisect import bisect
 from collections import namedtuple
 from itertools import groupby
 from math import sqrt, hypot
@@ -77,7 +78,16 @@ def jerk_duration(s, vi, ai, j):
     # TODO: remove numpy dependency?
     roots = numpy.roots([j / 6, ai / 2, vi, -s])
     roots = roots.real[abs(roots.imag) < EPS]
-    return min(x for x in roots if x > 0)
+    return float(min(x for x in roots if x > 0))
+
+def jerk_factor(a, j, t):
+    # compute a jerk factor based on desired jerk, 0 < jf <= 0.5
+    a = abs(a)
+    jt = j * t
+    r = jt * (jt - 4 * a)
+    if r < EPS:
+        return 0.5
+    return (jt - sqrt(r)) / (2 * jt)
 
 def corner_velocity(s1, s2, vmax, a, delta):
     # compute a maximum velocity at the corner of two segments
@@ -93,17 +103,37 @@ def corner_velocity(s1, s2, vmax, a, delta):
 
 Instant = namedtuple('Instant', ['t', 'p', 's', 'v', 'a', 'j'])
 
+class Plan(object):
+    # a complete motion profile
+    def __init__(self, blocks):
+        self.blocks = blocks
+        self.duration = sum(b.t for b in blocks)
+        self.length = sum(b.s for b in blocks)
+        self.times = [] # start time of each block
+        t = 0
+        for b in blocks:
+            self.times.append(t)
+            t += b.t
+
+    def instant(self, t):
+        t = max(0, t)
+        i = bisect(self.times, t) - 1
+        b = self.blocks[i]
+        bt = t - self.times[i]
+        return b.instant(bt)
+
 class Block(object):
     # a constant jerk for a duration of time
     def __init__(self, j, t, vi, ai, p1, p2):
+        # TODO: track total time and distance for entire path or do in post?
         self.j = j
         self.t = t
-        # TODO: si?
         self.vi = vi
         self.ai = ai
-        self.p1 = p1
-        self.p2 = p2
+        self.p1 = p1 # TODO: rename pi?
+        self.p2 = p2 # TODO: rename pf?
         self.s = p1.distance(p2)
+        # TODO: support providing vf, af when known
         self.vf = vi + ai * t + j * t * t / 2
         self.af = ai + j * t
 
@@ -112,14 +142,6 @@ class Block(object):
         b1 = Block(self.j, t, self.vi, self.ai, self.p1, x.p)
         b2 = Block(self.j, self.t - t, x.v, x.a, x.p, self.p2)
         return b1, b2
-
-    @property
-    def initial(self):
-        return self.instant(0)
-
-    @property
-    def final(self):
-        return self.instant(self.t)
 
     def instant(self, t):
         t2 = t * t
@@ -149,11 +171,11 @@ class Segment(object):
         self.blocks = []
 
 class Planner(object):
-    def __init__(self, acceleration, max_velocity, corner_factor, jerk_factor):
+    def __init__(self, acceleration, max_velocity, corner_factor, jerk):
         self.acceleration = acceleration
         self.max_velocity = max_velocity
         self.corner_factor = corner_factor
-        self.jerk_factor = jerk_factor
+        self.jerk = jerk
 
     def plan(self, points):
         a = self.acceleration
@@ -162,9 +184,8 @@ class Planner(object):
         return constant_acceleration_plan(points, a, vmax, cf)
 
     def jerk_plan(self, points):
-        blocks = self.plan(points)
-        jf = self.jerk_factor
-        return constant_jerk_plan(blocks, jf)
+        plan = self.plan(points)
+        return constant_jerk_plan(plan, self.jerk)
 
 def constant_acceleration_plan(points, a, vmax, cf):
     # make sure points are Point objects
@@ -196,6 +217,9 @@ def constant_acceleration_plan(points, a, vmax, cf):
 
         # determine which profile to use for this segment
         # TODO: rearrange these cases for better flow?
+
+        # TODO: ensure acceleration blocks are long enough to jerk
+        # min_acceleration_duration = 2 * a / j
 
         # accelerate? /
         vf = sqrt(vi * vi + 2 * a * s)
@@ -241,25 +265,26 @@ def constant_acceleration_plan(points, a, vmax, cf):
         blocks.extend(segment.blocks)
 
     # filter out zero-duration blocks and return
-    blocks = [x for x in blocks if x.t > EPS]
-    return blocks
+    blocks = [b for b in blocks if b.t > EPS]
+    return Plan(blocks)
 
-def constant_jerk_plan(blocks, jf):
+def constant_jerk_plan(plan, j):
     # TODO: ignore blocks that already have a jerk?
-    result = []
-    for a, g in groupby(blocks, key=lambda x: x.ai):
-        result.extend(_constant_jerk_plan(list(g), jf, a))
-    return result
+    blocks = []
+    for a, g in groupby(plan.blocks, key=lambda b: b.ai):
+        blocks.extend(_constant_jerk_plan(list(g), j, a))
+    return Plan(blocks)
 
-def _constant_jerk_plan(blocks, jf, a):
+def _constant_jerk_plan(blocks, j, a):
     if abs(a) < EPS:
         return blocks
     result = []
-    duration = sum(x.t for x in blocks)
+    duration = sum(b.t for b in blocks)
+    jf = jerk_factor(a, j, duration)
     t1 = duration * jf
     t2 = duration - 2 * t1
     amax = a / (1 - jf)
-    j = amax / t1
+    j = amax / t1 # actual jerk may exceed desired jerk
     vi = blocks[0].vi
     ai = 0
     s1 = vi * t1 + ai * t1 * t1 / 2 + j * t1 * t1 * t1 / 6
@@ -317,22 +342,3 @@ def split_blocks(blocks, s):
 # af = ai + j * t
 # vf = vi + ai * t + j * t * t / 2
 # sf = si + vi * t + ai * t * t / 2 + j * t * t * t / 6
-
-# def chop_block(p, dt):
-#     result = []
-#     t = 0
-#     while t < p.t:
-#         t1 = t
-#         t2 = min(t + dt, p.t)
-#         p1 = p.point(t1)
-#         p2 = p.point(t2)
-#         v = (p.velocity(t1) + p.velocity(t2)) / 2
-#         result.append(accelerate(0, t2 - t1, v, p1, p2))
-#         t += dt
-#     return result
-
-# def chop_blocks(blocks, dt):
-#     result = []
-#     for block in blocks:
-#         result.extend(chop_block(block, dt))
-#     return result
