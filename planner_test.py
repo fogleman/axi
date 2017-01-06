@@ -16,11 +16,11 @@ def main():
     for r in range(20, 100, 20):
         points = circle(0, 0, r, 90) + points
     planner = Planner(
-        acceleration=50, max_velocity=200, corner_factor=1, jerk=5000)
+        acceleration=50, max_velocity=200, corner_factor=1)
     plan = planner.plan(points)
     print 'var PIECES = ['
     for b in plan.blocks:
-        record = (b.p1.x, b.p1.y, b.p2.x, b.p2.y, b.ai, b.t)
+        record = (b.p1.x, b.p1.y, b.p2.x, b.p2.y, b.a, b.t)
         print '[%s],' % ','.join(map(str, record))
     print '];'
 

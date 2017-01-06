@@ -2,7 +2,7 @@ from axi import Planner
 
 def main():
     planner = Planner(
-        acceleration=100, max_velocity=200, corner_factor=0.1, jerk=5000)
+        acceleration=100, max_velocity=200, corner_factor=0.1)
     draws = list(PATHS)
     jogs = []
     for p1, p2 in zip(draws, draws[1:]):
@@ -13,9 +13,9 @@ def main():
     print 'var PIECES = ['
     for i, path in enumerate(paths):
         print '['
-        plan = planner.jerk_plan(path)
+        plan = planner.plan(path)
         for b in plan.blocks:
-            record = (b.p1.x, b.p1.y, b.p2.x, b.p2.y, b.j, b.t, i)
+            record = (b.p1.x, b.p1.y, b.p2.x, b.p2.y, b.a, b.t, i)
             print '[%s],' % ','.join(map(str, record))
         print '],'
     print '];'
