@@ -44,7 +44,6 @@ Triangle = namedtuple('Triangle',
 
 def triangle(s, vi, vf, a, d, p1, p3):
     # compute a triangular profile: accelerating, decelerating
-    # s1 = (2 * a * s + vf * vf - vi * vi) / (4 * a)
     s1 = (vf * vf - vi * vi - 2 * d * s) / (2 * a - 2 * d)
     s2 = s - s1
     vmax = (vi * vi + 2 * a * s1) ** 0.5
@@ -194,14 +193,16 @@ class Planner(object):
 def last_acceleration_group(segments, index):
     a = segments[index].blocks[-1].ai
     t = 0
+    j = index
     for i in range(index, -1, -1):
         for b in reversed(segments[i].blocks):
             if b.t < EPS:
                 continue
             if b.ai != a:
-                return i, t
+                return j, t, a
             t += b.t
-    return 0, t
+            j = i
+    return j, t, a
 
 def constant_acceleration_plan(points, j, amax, vmax, cf):
     # make sure points are Point objects
@@ -236,8 +237,8 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
         p2 = segment.p2
         a = segments[i].acceleration
         d = segments[i].deceleration
-        next_segment.acceleration = a
-        next_segment.deceleration = d
+        next_segment.acceleration = amax
+        next_segment.deceleration = -amax
 
         # determine which profile to use for this segment
         # TODO: rearrange these cases for better flow?
@@ -255,6 +256,7 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
             t = (vf - vi) / a
             segment.blocks.append(accelerate(a, t, vi, p1, p2))
             next_segment.entry_velocity = vf
+            next_segment.acceleration = a
             i += 1
             continue
 
@@ -280,15 +282,15 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
             # print 'accelerate, decelerate'
             if m.t1 > EPS:
                 segment.blocks.append(accelerate(a, m.t1, vi, m.p1, m.p2))
-                gi, gt = last_acceleration_group(segments, i)
+                gi, gt, ga = last_acceleration_group(segments, i)
                 if gt < min_acceleration_time:
-                    # print m.t1, 'acceleration too short'
+                    # print 'acceleration too short', gt, min_acceleration_time, ga
                     i = gi
                     segments[i].acceleration *= 0.5
-                    # print segments[i].acceleration
                     continue
             segment.blocks.append(accelerate(d, m.t2, m.vmax, m.p2, m.p3))
             next_segment.entry_velocity = vexit
+            next_segment.deceleration = d
             i += 1
             continue
 
@@ -296,8 +298,8 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
         # print 'too fast'
         segment.max_entry_velocity = sqrt(vexit * vexit + 2 * a * s)
         i -= 1 # TODO: support non-zero initial velocity?
-        segments[i].acceleration = a
-        segments[i].deceleration = d
+        # segments[i].acceleration = a
+        # segments[i].deceleration = d
 
     # concatenate all of the blocks
     blocks = []
