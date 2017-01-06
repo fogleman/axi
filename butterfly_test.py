@@ -2,7 +2,7 @@ from axi import Planner
 
 def main():
     planner = Planner(
-        acceleration=100, max_velocity=200, corner_factor=0.1, jerk=5000)
+        acceleration=100, max_velocity=200, corner_factor=0.1, jerk=500)
     draws = list(PATHS)
     jogs = []
     for p1, p2 in zip(draws, draws[1:]):

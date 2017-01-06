@@ -42,24 +42,24 @@ class Point(_Point):
 Triangle = namedtuple('Triangle',
     ['s1', 's2', 't1', 't2', 'vmax', 'p1', 'p2', 'p3'])
 
-def triangle(s, vi, vf, a, p1, p3):
+def triangle(s, vi, vf, a, d, p1, p3):
     # compute a triangular profile: accelerating, decelerating
     s1 = (2 * a * s + vf * vf - vi * vi) / (4 * a)
     s2 = s - s1
     vmax = (vi * vi + 2 * a * s1) ** 0.5
     t1 = (vmax - vi) / a
-    t2 = (vf - vmax) / -a
+    t2 = (vf - vmax) / -d
     p2 = p1.lerps(p3, s1)
     return Triangle(s1, s2, t1, t2, vmax, p1, p2, p3)
 
 Trapezoid = namedtuple('Trapezoid',
     ['s1', 's2', 's3', 't1', 't2', 't3', 'p1', 'p2', 'p3', 'p4'])
 
-def trapezoid(s, vi, vmax, vf, a, p1, p4):
+def trapezoid(s, vi, vmax, vf, a, d, p1, p4):
     # compute a trapezoidal profile: accelerating, cruising, decelerating
     t1 = (vmax - vi) / a
     s1 = (vmax + vi) / 2 * t1
-    t3 = (vf - vmax) / -a
+    t3 = (vf - vmax) / -d
     s3 = (vf + vmax) / 2 * t3
     s2 = s - s1 - s3
     t2 = s2 / vmax
@@ -178,16 +178,38 @@ class Planner(object):
         self.jerk = jerk
 
     def plan(self, points):
+        j = self.jerk
         a = self.acceleration
         vmax = self.max_velocity
         cf = self.corner_factor
-        return constant_acceleration_plan(points, a, vmax, cf)
+        return constant_acceleration_plan(points, j, a, vmax, cf)
 
     def jerk_plan(self, points):
         plan = self.plan(points)
         return constant_jerk_plan(plan, self.jerk)
 
-def constant_acceleration_plan(points, a, vmax, cf):
+class AccelerationInfo(object):
+    # helper used in constant_acceleration_plan to track duration of
+    # acceleration blocks and make sure they're long enough for jerking 
+    def __init__(self, j, a):
+        self.j = j
+        self.reset(a)
+
+    def reset(self, a):
+        self.i = None
+        self.a = a
+        self.t = 0
+
+    def accumulate(self, i, t):
+        if self.i is None:
+            self.i = i
+        self.t += t
+
+    @property
+    def ok(self):
+        return self.t >= 2 * self.a / self.j
+
+def constant_acceleration_plan(points, j, amax, vmax, cf):
     # make sure points are Point objects
     points = [Point(x, y) for x, y in points]
 
@@ -197,7 +219,7 @@ def constant_acceleration_plan(points, a, vmax, cf):
     # compute a max_entry_velocity for each segment
     # based on the angle formed by the two segments at the vertex
     for s1, s2 in zip(segments, segments[1:]):
-        v = corner_velocity(s1, s2, vmax, a, cf)
+        v = corner_velocity(s1, s2, vmax, amax, cf)
         s2.max_entry_velocity = v
 
     # add a dummy segment at the end to force a final velocity of zero
@@ -205,8 +227,13 @@ def constant_acceleration_plan(points, a, vmax, cf):
 
     # loop over segments
     i = 0
+    # TODO: make jerk optional
+    accel = AccelerationInfo(j, amax)
+    decel = AccelerationInfo(j, amax)
     while i < len(segments) - 1:
         # pull out some variables
+        a = accel.a
+        d = decel.a
         segment = segments[i]
         next_segment = segments[i + 1]
         s = segment.length
@@ -218,46 +245,71 @@ def constant_acceleration_plan(points, a, vmax, cf):
         # determine which profile to use for this segment
         # TODO: rearrange these cases for better flow?
 
-        # TODO: ensure acceleration blocks are long enough to jerk
-        # min_acceleration_duration = 2 * a / j
-
         # accelerate? /
         vf = sqrt(vi * vi + 2 * a * s)
         if vf <= vexit:
             t = (vf - vi) / a
+            accel.accumulate(i, t)
             segment.blocks = [
                 accelerate(a, t, vi, p1, p2),
             ]
             next_segment.entry_velocity = vf
             i += 1
+            decel.reset(amax)
             continue
 
         # accelerate, cruise, decelerate? /---\
-        m = triangle(s, vi, vexit, a, p1, p2)
+        m = triangle(s, vi, vexit, a, d, p1, p2)
         if m.s1 > -EPS and m.s2 > -EPS and m.vmax >= vmax:
-            z = trapezoid(s, vi, vmax, vexit, a, p1, p2)
+            z = trapezoid(s, vi, vmax, vexit, a, d, p1, p2)
+            accel.accumulate(i, z.t1)
+            if not accel.ok:
+                i = accel.i
+                accel.reset(a * 0.5) # TODO: compute new a somehow?
+                continue
+            decel.reset(amax)
+            decel.accumulate(i, z.t3)
+            if not decel.ok:
+                i = decel.i
+                decel.reset(d * 0.5)
+                continue
             segment.blocks = [
                 accelerate(a, z.t1, vi, z.p1, z.p2),
                 accelerate(0, z.t2, vmax, z.p2, z.p3),
-                accelerate(-a, z.t3, vmax, z.p3, z.p4),
+                accelerate(-d, z.t3, vmax, z.p3, z.p4),
             ]
             next_segment.entry_velocity = vexit
             i += 1
+            accel.reset(amax)
             continue
 
         # accelerate, decelerate? /\
         if m.s1 > -EPS and m.s2 > -EPS:
+            accel.accumulate(i, m.t1)
+            if not accel.ok:
+                i = accel.i
+                accel.reset(a * 0.5) # TODO: compute new a somehow?
+                continue
+            if m.t1 > EPS:
+                decel.reset(amax)
+            decel.accumulate(i, m.t2)
+            if not decel.ok:
+                i = decel.i
+                decel.reset(d * 0.5)
+                continue
             segment.blocks = [
                 accelerate(a, m.t1, vi, m.p1, m.p2),
-                accelerate(-a, m.t2, m.vmax, m.p2, m.p3),
+                accelerate(-d, m.t2, m.vmax, m.p2, m.p3),
             ]
             next_segment.entry_velocity = vexit
             i += 1
+            accel.reset(amax)
             continue
 
         # too fast! update max_entry_velocity and backtrack
         segment.max_entry_velocity = sqrt(vexit * vexit + 2 * a * s)
         i -= 1 # TODO: support non-zero initial velocity?
+        # accel.reset(a) ???
 
     # concatenate all of the blocks
     blocks = []
