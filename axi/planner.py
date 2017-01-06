@@ -155,8 +155,10 @@ class Block(object):
         p = self.p1.lerps(self.p2, s)
         return Instant(t, p, s, v, a, j)
 
-def accelerate(a, t, vi, p1, p2):
-    return Block(0, t, vi, a, p1, p2)
+def accelerate(segment, a, t, vi, p1, p2):
+    if t < EPS:
+        return
+    segment.blocks.append(Block(0, t, vi, a, p1, p2))
 
 class Segment(object):
     # a segment is a line segment between two points, which will be broken
@@ -190,19 +192,23 @@ class Planner(object):
         plan = self.plan(points)
         return constant_jerk_plan(plan, self.jerk)
 
-def last_acceleration_group(segments, index):
-    a = segments[index].blocks[-1].ai
-    t = 0
-    j = index
+def reverse_block_generator(segments, index):
     for i in range(index, -1, -1):
         for b in reversed(segments[i].blocks):
-            if b.t < EPS:
-                continue
-            if b.ai != a:
-                return j, t, a
-            t += b.t
-            j = i
-    return j, t, a
+            yield i, b
+
+def last_acceleration_group(segments, index):
+    it = reverse_block_generator(segments, index)
+    it = groupby(it, key=lambda (i, b): b.ai)
+    try:
+        it.next()
+        a, g = it.next()
+        blocks = list(g)
+        t = sum(b.t for i, b in blocks)
+        i = min(i for i, b in blocks)
+        return i, a, t
+    except StopIteration:
+        return 0, 0, 0
 
 def constant_acceleration_plan(points, j, amax, vmax, cf):
     # make sure points are Point objects
@@ -224,8 +230,10 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
     i = 0
     # TODO: make jerk optional
     # return self.t >= 2 * self.a / self.j
-    segments[i].acceleration = amax
-    segments[i].deceleration = -amax
+    # segments[i].acceleration = amax
+    # segments[i].deceleration = -amax
+    a = amax
+    d = -amax
     while i < len(segments) - 1:
         # pull out some variables
         segment = segments[i]
@@ -235,10 +243,10 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
         vexit = next_segment.max_entry_velocity
         p1 = segment.p1
         p2 = segment.p2
-        a = segments[i].acceleration
-        d = segments[i].deceleration
-        next_segment.acceleration = amax
-        next_segment.deceleration = -amax
+        # a = segments[i].acceleration
+        # d = segments[i].deceleration
+        # next_segment.acceleration = a
+        # next_segment.deceleration = d
 
         # determine which profile to use for this segment
         # TODO: rearrange these cases for better flow?
@@ -247,59 +255,52 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
         min_acceleration_time = 2 * a / j
         min_deceleration_time = 2 * d / -j
 
-        # print i, a, d, min_acceleration_time, min_deceleration_time
+        gi, ga, gt = last_acceleration_group(segments, i)
+        if ga < 0 and gt < min_deceleration_time:
+            print gi, ga, gt, min_deceleration_time
+            i = gi
+            d = ga * 0.5
+            continue
+        if ga > 0 and gt < min_acceleration_time:
+            print gi, ga, gt, min_acceleration_time
+            i = gi
+            a = ga * 0.5
+            continue
+
+        print i, a, d, min_acceleration_time, min_deceleration_time
 
         # accelerate? /
         vf = sqrt(vi * vi + 2 * a * s)
         if vf <= vexit:
-            # print 'accelerate'
             t = (vf - vi) / a
-            segment.blocks.append(accelerate(a, t, vi, p1, p2))
+            accelerate(segment, a, t, vi, p1, p2)
             next_segment.entry_velocity = vf
-            next_segment.acceleration = a
             i += 1
             continue
 
         # accelerate, cruise, decelerate? /---\
         m = triangle(s, vi, vexit, a, d, p1, p2)
         if m.s1 > -EPS and m.s2 > -EPS and m.vmax >= vmax:
-            # print 'accelerate, cruise, decelerate'
             raise
             z = trapezoid(s, vi, vmax, vexit, a, d, p1, p2)
-            segment.blocks.append(accelerate(a, z.t1, vi, z.p1, z.p2))
-            gi, gt = last_acceleration_group(segments, i)
-            if gt < min_acceleration_time:
-                i = gi
-                continue
-            segment.blocks.append(accelerate(0, z.t2, vmax, z.p2, z.p3))
-            segment.blocks.append(accelerate(d, z.t3, vmax, z.p3, z.p4))
+            accelerate(segment, a, z.t1, vi, z.p1, z.p2)
+            accelerate(segment, 0, z.t2, vmax, z.p2, z.p3)
+            accelerate(segment, d, z.t3, vmax, z.p3, z.p4)
             next_segment.entry_velocity = vexit
             i += 1
             continue
 
         # accelerate, decelerate? /\
         if m.s1 > -EPS and m.s2 > -EPS:
-            # print 'accelerate, decelerate'
-            if m.t1 > EPS:
-                segment.blocks.append(accelerate(a, m.t1, vi, m.p1, m.p2))
-                gi, gt, ga = last_acceleration_group(segments, i)
-                if gt < min_acceleration_time:
-                    # print 'acceleration too short', gt, min_acceleration_time, ga
-                    i = gi
-                    segments[i].acceleration *= 0.5
-                    continue
-            segment.blocks.append(accelerate(d, m.t2, m.vmax, m.p2, m.p3))
+            accelerate(segment, a, m.t1, vi, m.p1, m.p2)
+            accelerate(segment, d, m.t2, m.vmax, m.p2, m.p3)
             next_segment.entry_velocity = vexit
-            next_segment.deceleration = d
             i += 1
             continue
 
         # too fast! update max_entry_velocity and backtrack
-        # print 'too fast'
         segment.max_entry_velocity = sqrt(vexit * vexit + 2 * a * s)
         i -= 1 # TODO: support non-zero initial velocity?
-        # segments[i].acceleration = a
-        # segments[i].deceleration = d
 
     # concatenate all of the blocks
     blocks = []
@@ -307,6 +308,7 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
         blocks.extend(segment.blocks)
 
     # filter out zero-duration blocks and return
+    # TODO: not needed anymore
     blocks = [b for b in blocks if b.t > EPS]
     return Plan(blocks)
 
