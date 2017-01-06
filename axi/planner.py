@@ -299,7 +299,7 @@ def constant_acceleration_plan(points, j, amax, vmax, cf):
             continue
 
         # too fast! update max_entry_velocity and backtrack
-        segment.max_entry_velocity = sqrt(vexit * vexit + 2 * a * s)
+        segment.max_entry_velocity = sqrt(vexit * vexit - 2 * d * s)
         i -= 1 # TODO: support non-zero initial velocity?
 
     # concatenate all of the blocks
