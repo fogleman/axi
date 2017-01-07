@@ -12,7 +12,7 @@ def circle(cx, cy, r, n):
     return points
 
 def main():
-    planner = Planner(acceleration=10, max_velocity=5, corner_factor=0.01)
+    planner = Planner(acceleration=10, max_velocity=5, corner_factor=0.001)
     path = []
     path.append((0, 0))
     for i in range(10):

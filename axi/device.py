@@ -1,10 +1,18 @@
 from math import modf
+from planner import Planner
 from serial import Serial
 from serial.tools.list_ports import comports
 import time
 
 STEPS_PER_INCH = 2032
 STEPS_PER_MM = 80
+
+PEN_UP_DELAY = 400
+PEN_DOWN_DELAY = 400
+
+ACCELERATION = 10
+MAX_VELOCITY = 5
+CORNER_FACTOR = 0.001
 
 VID_PID = '04D8:FD92'
 
@@ -15,12 +23,21 @@ def find_port():
     return None
 
 class Device(object):
-    def __init__(self, steps_per_unit=STEPS_PER_INCH):
+    def __init__(self):
         port = find_port()
         if port is None:
             raise Exception('cannot find axidraw device')
         self.serial = Serial(port, timeout=1)
-        self.steps_per_unit = steps_per_unit
+        self.steps_per_unit = STEPS_PER_INCH
+        self.pen_up_delay = PEN_UP_DELAY
+        self.pen_down_delay = PEN_DOWN_DELAY
+        self.acceleration = ACCELERATION
+        self.max_velocity = MAX_VELOCITY
+        self.corner_factor = CORNER_FACTOR
+
+    def make_planner(self):
+        return Planner(
+            self.acceleration, self.max_velocity, self.corner_factor)
 
     def readline(self):
         return self.serial.readline().strip()
@@ -66,9 +83,25 @@ class Device(object):
             t += step_s
         self.wait()
 
-    # pen functions
-    def pen_up(self, delay=0):
-        return self.command('SP', 1, delay)
+    def run_path(self, path):
+        planner = self.make_planner()
+        plan = planner.plan(path)
+        self.run_plan(plan)
 
-    def pen_down(self, delay=0):
-        return self.command('SP', 0, delay)
+    def run_drawing(self, drawing):
+        self.pen_up()
+        position = (0, 0)
+        for path in drawing.paths:
+            self.run_path([position, path[0]])
+            self.pen_down()
+            self.run_path(path)
+            self.pen_up()
+            position = path[-1]
+        self.run_path([position, (0, 0)])
+
+    # pen functions
+    def pen_up(self):
+        return self.command('SP', 1, self.pen_up_delay)
+
+    def pen_down(self):
+        return self.command('SP', 0, self.pen_down_delay)
