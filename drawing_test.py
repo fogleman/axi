@@ -2,7 +2,6 @@ from axi import Device, Drawing
 import time
 
 def main():
-    time.sleep(10)
     drawing = Drawing([PATH])
     drawing = drawing.scale_to_fit(8, 8)
     d = Device()
