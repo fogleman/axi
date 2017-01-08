@@ -1,10 +1,10 @@
 # axi
 
-Python library for working with the AxiDraw v3 pen plotter.
+Unofficial Python library for working with the [AxiDraw v3](http://www.axidraw.com/) pen plotter.
 
 ### Features
 
-- control AxiDraw v3 directly from Python
+- control AxiDraw v3 directly from Python with a simple API
 - constant acceleration (trapezoidal velocity) motion planning
 - path drawing order optimization
 - drawing transformations
