@@ -9,16 +9,16 @@ Python library for working with the AxiDraw v3 pen plotter.
 - path drawing order optimization
 - drawing transformations
   - translate, scale, rotate
-  - scale and/or rotate to fit
+  - scale and/or rotate to fit page
   - move to origin or center of page
-- "turtle" graphics
+- [turtle graphics](https://en.wikipedia.org/wiki/Turtle_graphics)
 
 ### TODO / Coming Soon
 
 - primitives
   - circles, arcs, beziers
 - svg support
-- preview (render png)
+- preview (render to png)
 - progress / status while drawing
 
 ### Installation
@@ -37,7 +37,7 @@ Then you can try the examples...
 
 ### Example
 
-Use the turtle to draw a dragon curve, filling an 8.5x11" page.
+Use the turtle to draw a dragon curve, filling a standard US letter page.
 
 ```python
 import axi
