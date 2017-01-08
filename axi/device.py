@@ -1,3 +1,5 @@
+from __future__ import division
+
 import time
 
 from math import modf
@@ -9,12 +11,16 @@ from .planner import Planner
 STEPS_PER_INCH = 2032
 STEPS_PER_MM = 80
 
+PEN_UP_POSITION = 60
+PEN_UP_SPEED = 150
 PEN_UP_DELAY = 100
+PEN_DOWN_POSITION = 40
+PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 100
 
-ACCELERATION = 6
+ACCELERATION = 5
 MAX_VELOCITY = 3
-CORNER_FACTOR = 0.001
+CORNER_FACTOR = 0.01
 
 VID_PID = '04D8:FD92'
 
@@ -25,17 +31,43 @@ def find_port():
     return None
 
 class Device(object):
-    def __init__(self):
-        port = find_port()
-        if port is None:
-            raise Exception('cannot find axidraw device')
-        self.serial = Serial(port, timeout=1)
+    def __init__(self, **kwargs):
         self.steps_per_unit = STEPS_PER_INCH
+        self.pen_up_position = PEN_UP_POSITION
+        self.pen_up_speed = PEN_UP_SPEED
         self.pen_up_delay = PEN_UP_DELAY
+        self.pen_down_position = PEN_DOWN_POSITION
+        self.pen_down_speed = PEN_DOWN_SPEED
         self.pen_down_delay = PEN_DOWN_DELAY
         self.acceleration = ACCELERATION
         self.max_velocity = MAX_VELOCITY
         self.corner_factor = CORNER_FACTOR
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+        port = find_port()
+        if port is None:
+            raise Exception('cannot find axidraw device')
+        self.serial = Serial(port, timeout=1)
+        self.configure()
+
+    def configure(self):
+        servo_min = 7500
+        servo_max = 28000
+        pen_up_position = self.pen_up_position / 100
+        pen_up_position = int(
+            servo_min + (servo_max - servo_min) * pen_up_position)
+        pen_down_position = self.pen_down_position / 100
+        pen_down_position = int(
+            servo_min + (servo_max - servo_min) * pen_down_position)
+        self.command('SC', 4, pen_up_position)
+        self.command('SC', 5, pen_down_position)
+        self.command('SC', 11, int(self.pen_up_speed * 5))
+        self.command('SC', 12, int(self.pen_down_speed * 5))
+
+    def close(self):
+        self.serial.close()
 
     def make_planner(self):
         return Planner(
@@ -71,7 +103,7 @@ class Device(object):
 
     def run_plan(self, plan):
         step_ms = 30
-        step_s = step_ms / 1000.0
+        step_s = step_ms / 1000
         t = 0
         ex = 0
         ey = 0
@@ -91,12 +123,14 @@ class Device(object):
         self.run_plan(plan)
 
     def run_drawing(self, drawing):
+        planner = self.make_planner()
         self.pen_up()
         position = (0, 0)
         for path in drawing.paths:
             self.run_path([position, path[0]])
+            plan = planner.plan(path)
             self.pen_down()
-            self.run_path(path)
+            self.run_plan(plan)
             self.pen_up()
             position = path[-1]
         self.run_path([position, (0, 0)])

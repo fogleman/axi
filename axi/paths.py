@@ -13,7 +13,7 @@ def sort_paths(paths, reversable=True):
             points.append((x2, y2, path, True))
     index = Index(points)
     while index.size > 0:
-        x, y, path, reverse = index.search(result[-1][-1])
+        x, y, path, reverse = index.nearest(result[-1][-1])
         x1, y1 = path[0]
         x2, y2 = path[-1]
         index.remove((x1, y1, path, False))

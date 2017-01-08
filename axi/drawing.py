@@ -1,4 +1,8 @@
+from __future__ import division
+
 from math import sin, cos, radians
+
+from .paths import sort_paths
 
 class Drawing(object):
     def __init__(self, paths=None):
@@ -29,8 +33,8 @@ class Drawing(object):
         x1, y1, x2, y2 = self.bounds
         return y2 - y1
 
-    # def sort_paths_greedy(self, reversable=True):
-    #     return Drawing(planner.sort_paths_greedy(self.paths, reversable))
+    def sort_paths(self, reversable=True):
+        return Drawing(sort_paths(self.paths, reversable))
 
     # def join_paths(self, tolerance=0.05):
     #     return Drawing(util.join_paths(self.paths, tolerance))
@@ -70,18 +74,21 @@ class Drawing(object):
     def origin(self):
         return self.move(0, 0, 0, 0)
 
+    def center(self, width, height):
+        return self.move(width / 2, height / 2, 0.5, 0.5)
+
     def rotate_to_fit(self, width, height, step=5):
         for angle in range(0, 180, step):
             drawing = self.rotate(angle)
             if drawing.width <= width and drawing.height <= height:
-                return drawing.origin()
+                return drawing.center(width, height)
         return None
 
     def scale_to_fit(self, width, height, padding=0):
         width -= padding * 2
         height -= padding * 2
         scale = min(width / self.width, height / self.height)
-        return self.scale(scale, scale).origin()
+        return self.scale(scale, scale).center(width, height)
 
     def rotate_and_scale_to_fit(self, width, height, padding=0, step=5):
         drawings = []
@@ -92,4 +99,4 @@ class Drawing(object):
             scale = min(width / drawing.width, height / drawing.height)
             drawings.append((scale, drawing))
         scale, drawing = max(drawings)
-        return drawing.scale(scale, scale).origin()
+        return drawing.scale(scale, scale).center(width, height)
