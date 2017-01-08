@@ -1,3 +1,5 @@
+from math import hypot
+
 from .spatial import Index
 
 def sort_paths(paths, reversable=True):
@@ -23,4 +25,18 @@ def sort_paths(paths, reversable=True):
             result.append(list(reversed(path)))
         else:
             result.append(path)
+    return result
+
+def join_paths(paths, tolerance):
+    if len(paths) < 2:
+        return paths
+    result = [list(paths[0])]
+    for path in paths[1:]:
+        x1, y1 = result[-1][-1]
+        x2, y2 = path[0]
+        d = hypot(x2 - x1, y2 - y1)
+        if d <= tolerance:
+            result[-1].extend(path)
+        else:
+            result.append(list(path))
     return result

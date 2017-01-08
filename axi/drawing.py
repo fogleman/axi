@@ -2,7 +2,7 @@ from __future__ import division
 
 from math import sin, cos, radians
 
-from .paths import sort_paths
+from .paths import sort_paths, join_paths
 
 class Drawing(object):
     def __init__(self, paths=None):
@@ -36,8 +36,8 @@ class Drawing(object):
     def sort_paths(self, reversable=True):
         return Drawing(sort_paths(self.paths, reversable))
 
-    # def join_paths(self, tolerance=0.05):
-    #     return Drawing(util.join_paths(self.paths, tolerance))
+    def join_paths(self, tolerance):
+        return Drawing(join_paths(self.paths, tolerance))
 
     # def remove_duplicates(self):
     #     return Drawing(util.remove_duplicates(self.paths))
