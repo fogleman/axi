@@ -1,4 +1,4 @@
-from spatial import Index
+from .spatial import Index
 
 def sort_paths(paths, reversable=True):
     first = paths[0]

@@ -1,8 +1,10 @@
+import time
+
 from math import modf
-from planner import Planner
 from serial import Serial
 from serial.tools.list_ports import comports
-import time
+
+from .planner import Planner
 
 STEPS_PER_INCH = 2032
 STEPS_PER_MM = 80
