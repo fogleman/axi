@@ -19,7 +19,7 @@ PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 100
 
 ACCELERATION = 8
-MAX_VELOCITY = 4
+MAX_VELOCITY = 8
 CORNER_FACTOR = 0.01
 
 VID_PID = '04D8:FD92'
@@ -45,6 +45,8 @@ class Device(object):
 
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        self.error = (0, 0) # accumulated step error
 
         port = find_port()
         if port is None:
@@ -102,17 +104,17 @@ class Device(object):
             time.sleep(0.1)
 
     def run_plan(self, plan):
-        step_ms = 30
+        step_ms = 10
         step_s = step_ms / 1000
         t = 0
-        ex = 0
-        ey = 0
         while t < plan.t:
             i1 = plan.instant(t)
             i2 = plan.instant(t + step_s)
             d = i2.p.sub(i1.p)
+            ex, ey = self.error
             ex, sx = modf(d.x * self.steps_per_unit + ex)
             ey, sy = modf(d.y * self.steps_per_unit + ey)
+            self.error = ex, ey
             self.move(step_ms, int(sx), int(sy))
             t += step_s
         self.wait()

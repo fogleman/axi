@@ -2,7 +2,7 @@ from __future__ import division
 
 from math import sin, cos, radians
 
-from .paths import sort_paths, join_paths
+from .paths import simplify_paths, sort_paths, join_paths
 
 class Drawing(object):
     def __init__(self, paths=None):
@@ -33,6 +33,9 @@ class Drawing(object):
         x1, y1, x2, y2 = self.bounds
         return y2 - y1
 
+    def simplify_paths(self, tolerance):
+        return Drawing(simplify_paths(self.paths, tolerance))
+
     def sort_paths(self, reversable=True):
         return Drawing(sort_paths(self.paths, reversable))
 
@@ -41,9 +44,6 @@ class Drawing(object):
 
     # def remove_duplicates(self):
     #     return Drawing(util.remove_duplicates(self.paths))
-
-    # def simplify_paths(self, tolerance=0.05):
-    #     return Drawing(util.simplify_paths(self.paths, tolerance))
 
     def transform(self, func):
         return Drawing([[func(x, y) for x, y in path] for path in self.paths])

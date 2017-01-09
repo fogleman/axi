@@ -7,7 +7,7 @@ setup(
     author='Michael Fogleman',
     author_email='michael.fogleman@gmail.com',
     packages=['axi'],
-    install_requires=['pyserial'],
+    install_requires=['pyserial', 'shapely'],
     license='MIT',
     classifiers=(
         'Development Status :: 3 - Alpha',

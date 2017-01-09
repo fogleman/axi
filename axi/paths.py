@@ -1,6 +1,17 @@
 from math import hypot
+from shapely.geometry import LineString
 
 from .spatial import Index
+
+def simplify_path(points, tolerance):
+    if len(points) < 2:
+        return points
+    line = LineString(points)
+    line = line.simplify(tolerance)
+    return list(line.coords)
+
+def simplify_paths(paths, tolerance):
+    return [simplify_path(x, tolerance) for x in paths]
 
 def sort_paths(paths, reversable=True):
     first = paths[0]
