@@ -4,6 +4,11 @@ from math import sin, cos, radians
 
 from .paths import simplify_paths, sort_paths, join_paths
 
+try:
+    import cairo
+except ImportError:
+    cairo = None
+
 class Drawing(object):
     def __init__(self, paths=None):
         self.paths = paths or []
@@ -100,3 +105,46 @@ class Drawing(object):
             drawings.append((scale, drawing))
         scale, drawing = max(drawings)
         return drawing.scale(scale, scale).center(width, height)
+
+    def remove_paths_outside(self, width, height):
+        paths = []
+        for path in self.paths:
+            ok = True
+            for x, y in path:
+                if x < 0 or y < 0 or x > width or y > height:
+                    ok = False
+                    break
+            if ok:
+                paths.append(path)
+        return Drawing(paths)
+
+    def render(self, scale=96, margin=30, line_width=0.5/25.4):
+        if cairo is None:
+            raise Exception('Drawing.render() requires cairo')
+        # x1, y1, x2, y2 = self.bounds
+        x1, y1, x2, y2 = (0, 0, 11, 8.5)
+        w = x2 - x1
+        h = y2 - y1
+        width = int(scale * w + margin * 2)
+        height = int(scale * h + margin * 2)
+        surface = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
+        dc = cairo.Context(surface)
+        dc.set_line_cap(cairo.LINE_CAP_ROUND)
+        dc.set_line_join(cairo.LINE_JOIN_ROUND)
+        dc.translate(margin, margin)
+        dc.scale(scale, scale)
+        dc.translate(-x1, -y1)
+        dc.set_source_rgb(1, 1, 1)
+        dc.paint()
+        dc.set_source_rgb(0.5, 0.5, 0.5)
+        dc.set_line_width(1 / scale)
+        dc.rectangle(x1, y1, w, h)
+        dc.stroke()
+        dc.set_source_rgb(0, 0, 0)
+        dc.set_line_width(line_width)
+        for path in self.paths:
+            dc.move_to(*path[0])
+            for x, y in path:
+                dc.line_to(x, y)
+        dc.stroke()
+        return surface
