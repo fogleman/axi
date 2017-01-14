@@ -13,13 +13,13 @@ STEPS_PER_MM = 80
 
 PEN_UP_POSITION = 60
 PEN_UP_SPEED = 150
-PEN_UP_DELAY = 100
+PEN_UP_DELAY = 0
 PEN_DOWN_POSITION = 40
 PEN_DOWN_SPEED = 150
-PEN_DOWN_DELAY = 100
+PEN_DOWN_DELAY = 0
 
-ACCELERATION = 8
-MAX_VELOCITY = 8
+ACCELERATION = 12
+MAX_VELOCITY = 6
 CORNER_FACTOR = 0.01
 
 VID_PID = '04D8:FD92'
@@ -101,7 +101,7 @@ class Device(object):
 
     def wait(self):
         while '1' in self.motor_status():
-            time.sleep(0.1)
+            time.sleep(0.01)
 
     def run_plan(self, plan):
         step_ms = 10
@@ -139,7 +139,13 @@ class Device(object):
 
     # pen functions
     def pen_up(self):
-        return self.command('SP', 1, self.pen_up_delay)
+        delta = abs(self.pen_up_position - self.pen_down_position)
+        duration = int(1000 * delta / self.pen_up_speed)
+        delay = max(0, duration + self.pen_up_delay)
+        return self.command('SP', 1, delay)
 
     def pen_down(self):
-        return self.command('SP', 0, self.pen_down_delay)
+        delta = abs(self.pen_up_position - self.pen_down_position)
+        duration = int(1000 * delta / self.pen_down_speed)
+        delay = max(0, duration + self.pen_down_delay)
+        return self.command('SP', 0, delay)
