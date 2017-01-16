@@ -89,6 +89,18 @@ class Device(object):
         self.serial.write(line + '\r')
         return self.readline()
 
+    # higher level functions
+    def move(self, dx, dy):
+        self.run_path([(0, 0), (dx, dy)])
+
+    def goto(self, x, y):
+        px, py = self.read_position()
+        self.run_path([(px, py), (x, y)])
+
+    def home(self):
+        self.goto(0, 0)
+
+    # misc commands
     def version(self):
         return self.command('V')
 
@@ -103,7 +115,20 @@ class Device(object):
     def motor_status(self):
         return self.command('QM')
 
-    def move(self, duration, a, b):
+    def zero_position(self):
+        return self.command('CS')
+
+    def read_position(self):
+        response = self.command('QS')
+        self.readline()
+        a, b = map(int, response.split(','))
+        a /= self.steps_per_unit
+        b /= self.steps_per_unit
+        y = (a - b) / 2
+        x = y + b
+        return x, y
+
+    def stepper_move(self, duration, a, b):
         return self.command('XM', duration, a, b)
 
     def wait(self):
@@ -122,7 +147,7 @@ class Device(object):
             ex, sx = modf(d.x * self.steps_per_unit + ex)
             ey, sy = modf(d.y * self.steps_per_unit + ey)
             self.error = ex, ey
-            self.move(step_ms, int(sx), int(sy))
+            self.stepper_move(step_ms, int(sx), int(sy))
             t += step_s
         self.wait()
 

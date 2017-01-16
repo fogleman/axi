@@ -8,6 +8,11 @@ setup(
     author_email='michael.fogleman@gmail.com',
     packages=['axi'],
     install_requires=['pyserial', 'shapely'],
+    entry_points={
+        'console_scripts': [
+            'axi = axi.main:main'
+        ]
+    },
     license='MIT',
     classifiers=(
         'Development Status :: 3 - Alpha',
