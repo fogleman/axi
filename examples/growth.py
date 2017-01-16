@@ -49,15 +49,23 @@ class Grid(object):
         self.lines.pop((i, j))
 
 def max_angle(i, d):
+    if d < 0.1:
+        return pi
+    return pi / 4
     a1 = 2 * pi
     a2 = pi / 2
     p = min(1, d / 20.0)
     p = p ** 0.5
     return a1 + (a2 - a1) * p
 
+def new_angle(a, d):
+    if d < 0.1:
+        return random.random() * 2 * pi
+    else:
+        return random.gauss(a, pi / 10)
+
 def choice(items):
-    # return random.choice(items)
-    p = random.random() ** 0.1
+    p = random.random() ** 0.5
     return items[int(p * len(items))]
 
 def poisson_disc(x1, y1, x2, y2, r, n):
@@ -76,8 +84,9 @@ def poisson_disc(x1, y1, x2, y2, r, n):
         ax, ay, aa, ai, ad, ag = record = choice(active)
         for i in range(n):
             # a = random.random() * 2 * pi
-            a = aa + (random.random() - 0.5) * max_angle(ai, ad)
+            # a = aa + (random.random() * 2 - 1) * max_angle(ai, ad)
             # a = random.gauss(aa, pi / 8)
+            a = new_angle(aa, ad)
             d = random.random() * r + r
             x = ax + cos(a) * d
             y = ay + sin(a) * d
@@ -92,8 +101,6 @@ def poisson_disc(x1, y1, x2, y2, r, n):
             pairs.append(pair)
             active.append((x, y, a, ai + 1, ad + d, ag))
             active.sort(key=lambda x: -x[4])
-            # if random.random() < 0.5:
-            #     active.remove(record)
             break
         else:
             active.remove(record)
@@ -118,11 +125,11 @@ def make_path(pairs):
     return path
 
 def main():
-    random.seed(1182)
-    points, pairs = poisson_disc(0, 0, 11, 8.5, 0.05, 24)
+    # random.seed(1182)
+    points, pairs = poisson_disc(0, 0, 11, 8.5, 0.035, 32)
     path = make_path(pairs)
     drawing = axi.Drawing([path]).scale_to_fit(11, 8.5)
-    # drawing.render().write_to_png('out.png')
+    drawing.render().write_to_png('out.png')
     axi.draw(drawing)
 
 if __name__ == '__main__':

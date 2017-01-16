@@ -3,6 +3,17 @@ from shapely.geometry import LineString
 
 from .spatial import Index
 
+def load_paths(filename):
+    paths = []
+    with open(filename) as fp:
+        for line in fp:
+            points = filter(None, line.strip().split(';'))
+            if not points:
+                continue
+            path = [tuple(map(float, x.split(','))) for x in points]
+            paths.append(path)
+    return paths
+
 def simplify_path(points, tolerance):
     if len(points) < 2:
         return points
