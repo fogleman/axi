@@ -13,13 +13,10 @@ def circle(cx, cy, r, n):
     return points
 
 def main():
-    # axi.reset(); return
     path = []
     for i in range(10):
         path.extend(circle(4, 4, (i + 1) * 0.2, 3600))
-
     drawing = axi.Drawing([path]).simplify_paths(0.001)
-    # drawing.render().write_to_png('out.png')
     axi.draw(drawing)
 
 if __name__ == '__main__':
