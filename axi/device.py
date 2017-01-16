@@ -8,19 +8,25 @@ from serial.tools.list_ports import comports
 
 from .planner import Planner
 
-STEPS_PER_INCH = 2032
-STEPS_PER_MM = 80
+TIMESLICE_MS = 10
+
+MICROSTEPPING_MODE = 1
+STEP_DIVIDER = 2 ** (MICROSTEPPING_MODE - 1)
+
+STEPS_PER_INCH = 2032 / STEP_DIVIDER
+STEPS_PER_MM = 80 / STEP_DIVIDER
 
 PEN_UP_POSITION = 60
 PEN_UP_SPEED = 150
 PEN_UP_DELAY = 0
+
 PEN_DOWN_POSITION = 40
 PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
-ACCELERATION = 12
-MAX_VELOCITY = 6
-CORNER_FACTOR = 0.01
+ACCELERATION = 8
+MAX_VELOCITY = 8
+CORNER_FACTOR = 0.005
 
 VID_PID = '04D8:FD92'
 
@@ -88,7 +94,8 @@ class Device(object):
 
     # motor functions
     def enable_motors(self):
-        return self.command('EM', 1, 1)
+        m = MICROSTEPPING_MODE
+        return self.command('EM', m, m)
 
     def disable_motors(self):
         return self.command('EM', 0, 0)
@@ -104,7 +111,7 @@ class Device(object):
             time.sleep(0.01)
 
     def run_plan(self, plan):
-        step_ms = 10
+        step_ms = TIMESLICE_MS
         step_s = step_ms / 1000
         t = 0
         while t < plan.t:
