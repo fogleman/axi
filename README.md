@@ -5,20 +5,36 @@ Unofficial Python library for working with the [AxiDraw v3](http://www.axidraw.c
 ### Features
 
 - control AxiDraw v3 directly from Python with a simple API
+- convenient command-line utility
 - constant acceleration (trapezoidal velocity) motion planning
 - path drawing order optimization
 - drawing transformations
   - translate, scale, rotate
   - scale and/or rotate to fit page
   - move to origin or center of page
+- preview drawing (render to png)
 - [turtle graphics](https://en.wikipedia.org/wiki/Turtle_graphics)
+
+### Command Line Utility
+
+Once `pip install'd`, you can run the axi command-line utility. Here are the supported commands:
+
+```
+axi on         # enable the motors
+axi off        # disable the motors
+axi up         # move the pen up
+axi down       # move the pen down
+axi zero       # set current position as (0, 0)
+axi home       # return to the (0, 0) position
+axi move DX DY # move (DX, DY) inches, relative
+axi goto X Y   # move to the (X, Y) absolute position
+```
 
 ### TODO / Coming Soon
 
 - primitives
   - circles, arcs, beziers
 - svg support
-- preview (render to png)
 - progress / status while drawing
 
 ### Installation
