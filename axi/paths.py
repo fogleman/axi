@@ -18,7 +18,7 @@ def simplify_path(points, tolerance):
     if len(points) < 2:
         return points
     line = LineString(points)
-    line = line.simplify(tolerance)
+    line = line.simplify(tolerance, preserve_topology=False)
     return list(line.coords)
 
 def simplify_paths(paths, tolerance):
