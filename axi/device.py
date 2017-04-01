@@ -8,7 +8,7 @@ from serial.tools.list_ports import comports
 
 from .planner import Planner
 
-TIMESLICE_MS = 20
+TIMESLICE_MS = 15
 
 MICROSTEPPING_MODE = 2
 STEP_DIVIDER = 2 ** (MICROSTEPPING_MODE - 1)
@@ -24,7 +24,7 @@ PEN_DOWN_POSITION = 40
 PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
-ACCELERATION = 8
+ACCELERATION = 4
 MAX_VELOCITY = 2
 CORNER_FACTOR = 0.001
 
