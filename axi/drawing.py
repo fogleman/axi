@@ -38,6 +38,17 @@ class Drawing(object):
         x1, y1, x2, y2 = self.bounds
         return y2 - y1
 
+    @property
+    def all_paths(self):
+        result = []
+        position = (0, 0)
+        for path in self.paths:
+            result.append([position, path[0]])
+            result.append(path)
+            position = path[-1]
+        result.append([position, (0, 0)])
+        return result
+
     def simplify_paths(self, tolerance):
         return Drawing(simplify_paths(self.paths, tolerance))
 
@@ -50,8 +61,8 @@ class Drawing(object):
     # def remove_duplicates(self):
     #     return Drawing(util.remove_duplicates(self.paths))
 
-    def add(self, other):
-        self.paths.extend(other.paths)
+    def add(self, drawing):
+        self.paths.extend(drawing.paths)
         self._bounds = None
 
     def transform(self, func):

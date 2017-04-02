@@ -20,13 +20,13 @@ PEN_UP_POSITION = 60
 PEN_UP_SPEED = 150
 PEN_UP_DELAY = 0
 
-PEN_DOWN_POSITION = 40
+PEN_DOWN_POSITION = 50
 PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
-ACCELERATION = 4
-MAX_VELOCITY = 2
-CORNER_FACTOR = 0.001
+ACCELERATION = 8
+MAX_VELOCITY = 4
+CORNER_FACTOR = 0.005
 
 VID_PID = '04D8:FD92'
 
@@ -157,17 +157,22 @@ class Device(object):
         self.run_plan(plan)
 
     def run_drawing(self, drawing):
-        planner = self.make_planner()
         self.pen_up()
         position = (0, 0)
         for path in drawing.paths:
             self.run_path([position, path[0]])
-            plan = planner.plan(path)
             self.pen_down()
-            self.run_plan(plan)
+            self.run_path(path)
             self.pen_up()
             position = path[-1]
         self.run_path([position, (0, 0)])
+
+    def plan_drawing(self, drawing):
+        result = []
+        planner = self.make_planner()
+        for path in drawing.all_paths:
+            result.append(planner.plan(path))
+        return result
 
     # pen functions
     def pen_up(self):
