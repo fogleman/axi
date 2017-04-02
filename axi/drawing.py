@@ -50,6 +50,10 @@ class Drawing(object):
     # def remove_duplicates(self):
     #     return Drawing(util.remove_duplicates(self.paths))
 
+    def add(self, other):
+        self.paths.extend(other.paths)
+        self._bounds = None
+
     def transform(self, func):
         return Drawing([[func(x, y) for x, y in path] for path in self.paths])
 
@@ -58,7 +62,9 @@ class Drawing(object):
             return (x + dx, y + dy)
         return self.transform(func)
 
-    def scale(self, sx, sy):
+    def scale(self, sx, sy=None):
+        if sy is None:
+            sy = sx
         def func(x, y):
             return (x * sx, y * sy)
         return self.transform(func)
@@ -88,6 +94,12 @@ class Drawing(object):
             if drawing.width <= width and drawing.height <= height:
                 return drawing.center(width, height)
         return None
+
+    def scale_to_fit_height(self, height, padding=0):
+        return self.scale_to_fit(1e9, height, padding)
+
+    def scale_to_fit_width(self, width, padding=0):
+        return self.scale_to_fit(width, 1e9, padding)
 
     def scale_to_fit(self, width, height, padding=0):
         width -= padding * 2
