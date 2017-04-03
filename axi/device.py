@@ -7,6 +7,7 @@ from serial import Serial
 from serial.tools.list_ports import comports
 
 from .planner import Planner
+from .progress import Bar
 
 TIMESLICE_MS = 15
 
@@ -25,7 +26,7 @@ PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
 ACCELERATION = 8
-MAX_VELOCITY = 4
+MAX_VELOCITY = 2
 CORNER_FACTOR = 0.005
 
 VID_PID = '04D8:FD92'
@@ -156,10 +157,11 @@ class Device(object):
         plan = planner.plan(path)
         self.run_plan(plan)
 
-    def run_drawing(self, drawing):
+    def run_drawing(self, drawing, progress=True):
         self.pen_up()
         position = (0, 0)
-        for path in drawing.paths:
+        bar = Bar(enabled=progress)
+        for path in bar(drawing.paths):
             self.run_path([position, path[0]])
             self.pen_down()
             self.run_path(path)
