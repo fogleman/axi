@@ -113,9 +113,9 @@ class Drawing(object):
         return self.scale_to_fit(width, 1e9, padding)
 
     def scale_to_fit(self, width, height, padding=0):
-        width -= padding * 2
-        height -= padding * 2
-        scale = min(width / self.width, height / self.height)
+        s_width = width - padding * 2
+        s_height = height - padding * 2
+        scale = min(s_width / self.width, s_height / self.height)
         return self.scale(scale, scale).center(width, height)
 
     def rotate_and_scale_to_fit(self, width, height, padding=0, step=5):
