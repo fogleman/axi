@@ -129,6 +129,22 @@ class Drawing(object):
         scale, drawing = max(drawings)
         return drawing.scale(scale, scale).center(width, height)
 
+    def crop(self, width, height):
+        paths = []
+        for path in self.paths:
+            ok = True
+            new_path = []
+            for x, y in path:
+                if x < 0 or y < 0 or x > width or y > height:
+                    if new_path:
+                        paths.append(new_path)
+                        new_path = []
+                else:
+                    new_path.append((x,y))
+            if new_path:
+                paths.append(new_path)
+        return Drawing(paths)
+
     def remove_paths_outside(self, width, height):
         paths = []
         for path in self.paths:
