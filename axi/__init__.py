@@ -1,5 +1,6 @@
 from .device import Device
 from .drawing import Drawing
+from .lindenmayer import LSystem
 from .paths import simplify_paths, sort_paths, join_paths, load_paths
 from .planner import Planner
 from .turtle import Turtle
