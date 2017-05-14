@@ -30,12 +30,11 @@ axi move DX DY # move (DX, DY) inches, relative
 axi goto X Y   # move to the (X, Y) absolute position
 ```
 
-### TODO / Coming Soon
+### TODO
 
 - primitives
   - circles, arcs, beziers
 - svg support
-- progress / status while drawing
 
 ### Installation
 
