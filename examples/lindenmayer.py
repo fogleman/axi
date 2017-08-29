@@ -1,4 +1,5 @@
 import axi
+import sys
 
 def main():
     system = axi.LSystem({
@@ -14,8 +15,10 @@ def main():
     d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
     # d = d.sort_paths()
     # d = d.join_paths(0.015)
-    d.render().write_to_png('out.png')
-    axi.draw(d)
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".png"):
+        d.render().write_to_png(sys.argv[1])
+    else:
+        axi.draw(d)
 
 if __name__ == '__main__':
     main()

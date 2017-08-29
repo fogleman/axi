@@ -1,6 +1,7 @@
 from shapely.geometry import LineString
 import axi
 import random
+import sys
 
 X1 = 0
 X2 = 11
@@ -57,8 +58,10 @@ def main():
     d = axi.Drawing(paths)
     d = d.sort_paths()
     d = d.join_paths(0.001)
-    d.render().write_to_png('out.png')
-    axi.draw(d)
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".png"):
+        d.render().write_to_png(sys.argv[1])
+    else:
+        axi.draw(d)
 
 if __name__ == '__main__':
     main()

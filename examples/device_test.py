@@ -1,5 +1,6 @@
 import axi
 import time
+import sys
 
 from math import sin, cos, pi
 
@@ -17,7 +18,10 @@ def main():
     for i in range(10):
         path.extend(circle(4, 4, (i + 1) * 0.2, 3600))
     drawing = axi.Drawing([path]).simplify_paths(0.001)
-    axi.draw(drawing)
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".png"):
+        drawing.render().write_to_png(sys.argv[1])
+    else:
+        axi.draw(drawing)
 
 if __name__ == '__main__':
     main()

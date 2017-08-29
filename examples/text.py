@@ -1,4 +1,5 @@
 import axi
+import sys
 
 LINES = [
     'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
@@ -39,7 +40,10 @@ def main():
     d = d.join_paths(0.01)
     d.render().write_to_png('out.png')
     print sum(x.t for x in axi.Device().plan_drawing(d))
-    # axi.draw(d)
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".png"):
+        d.render().write_to_png(sys.argv[1])
+    else:
+        axi.draw(d)
 
 if __name__ == '__main__':
     main()
