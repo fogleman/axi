@@ -120,11 +120,11 @@ class Drawing(object):
 
     def rotate_and_scale_to_fit(self, width, height, padding=0, step=5):
         drawings = []
-        width -= padding * 2
-        height -= padding * 2
+        s_width = width - padding * 2
+        s_height = height - padding * 2
         for angle in range(0, 180, step):
             drawing = self.rotate(angle)
-            scale = min(width / drawing.width, height / drawing.height)
+            scale = min(s_width / drawing.width, s_height / drawing.height)
             drawings.append((scale, drawing))
         scale, drawing = max(drawings)
         return drawing.scale(scale, scale).center(width, height)
