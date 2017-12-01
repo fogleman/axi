@@ -3,11 +3,13 @@ from __future__ import division
 from shapely import geometry
 
 import axi
+import buildings
 import parser
 import projections
 import roads
 import sys
 import util
+import water
 
 LAT, LNG = 35.787196, -78.783337
 ROTATION_DEGREES = 0
@@ -32,10 +34,14 @@ def main():
     w = MAP_WIDTH_KM
     h = w / ASPECT_RATIO
     geoms = filter(None, [crop_geom(g, w * 1.1, h * 1.1) for g in geoms])
-    g = geometry.collection.GeometryCollection(geoms)
-    g = roads.create_geometry(geoms)
+    # g = geometry.collection.GeometryCollection(geoms)
+    # g = roads.create_geometry(geoms)
+    g = geometry.collection.GeometryCollection([
+        roads.create_geometry(geoms),
+        buildings.create_geometry(geoms),
+        water.create_geometry(geoms),
+    ])
     g = util.centered_crop(g, w, h)
-    print g.bounds
     paths = util.shapely_to_paths(g)
     # paths.append(util.centered_rectangle(w, h))
     d = axi.Drawing(paths)

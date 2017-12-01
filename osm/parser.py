@@ -47,7 +47,15 @@ class Handler(object):
             geoms.append(g)
         for osmid, tags, refs in self.ways:
             coords = [coords_by_id[x] for x in refs]
-            g = geometry.LineString(coords)
+            closed = refs[0] == refs[-1]
+            if 'highway' in tags or 'barrier' in tags:
+                closed = False
+            if tags.get('area') == 'yes':
+                closed = True
+            if closed:
+                g = geometry.Polygon(coords)
+            else:
+                g = geometry.LineString(coords)
             g.tags = tags
             geoms.append(g)
         return geoms
