@@ -141,7 +141,7 @@ class Drawing(object):
                 paths.append(path)
         return Drawing(paths)
 
-    def render(self, scale=109, margin=30, line_width=0.5/25.4):
+    def render(self, scale=109, margin=30, line_width=0.25/25.4):
         if cairo is None:
             raise Exception('Drawing.render() requires cairo')
         # x1, y1, x2, y2 = self.bounds
