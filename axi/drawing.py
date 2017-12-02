@@ -2,7 +2,7 @@ from __future__ import division
 
 from math import sin, cos, radians
 
-from .paths import simplify_paths, sort_paths, join_paths
+from .paths import simplify_paths, sort_paths, join_paths, crop_paths
 
 try:
     import cairo
@@ -57,6 +57,9 @@ class Drawing(object):
 
     def join_paths(self, tolerance):
         return Drawing(join_paths(self.paths, tolerance))
+
+    def crop_paths(self, x1, y1, x2, y2):
+        return Drawing(crop_paths(self.paths, x1, y1, x2, y2))
 
     # def remove_duplicates(self):
     #     return Drawing(util.remove_duplicates(self.paths))
