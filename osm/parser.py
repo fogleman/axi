@@ -1,5 +1,5 @@
 from imposm.parser import OSMParser
-from shapely import geometry
+from shapely import geometry, ops
 
 class Handler(object):
     def __init__(self, transform=None):
@@ -36,10 +36,9 @@ class Handler(object):
             ways_by_id[osmid] = (tags, refs)
         for osmid, tags, members in self.relations:
             relations_by_id[osmid] = (tags, members)
-            # for refid, reftype, role in members:
-            #     pass
         # create geometries
         geoms = []
+        way_geoms_by_id = {}
         for osmid, tags, (lng, lat) in self.nodes:
             lng, lat = self.transform_point(lng, lat)
             g = geometry.Point(lng, lat)
@@ -52,12 +51,46 @@ class Handler(object):
                 closed = False
             if tags.get('area') == 'yes':
                 closed = True
+            if len(coords) < 3:
+                closed = False
             if closed:
                 g = geometry.Polygon(coords)
             else:
                 g = geometry.LineString(coords)
             g.tags = tags
+            way_geoms_by_id[osmid] = g
             geoms.append(g)
+        for osmid, tags, members in self.relations:
+            if tags.get('type') == 'multipolygon':
+                outers = []
+                inners = []
+                outer_lines = []
+                inner_lines = []
+                for refid, reftype, role in members:
+                    if reftype != 'way':
+                        continue
+                    if refid not in way_geoms_by_id:
+                        continue
+                    way = way_geoms_by_id[refid]
+                    if role == 'outer':
+                        if isinstance(way, geometry.Polygon):
+                            outers.append(way)
+                        else:
+                            outer_lines.append(way)
+                    elif role == 'inner':
+                        if isinstance(way, geometry.Polygon):
+                            inners.append(way)
+                        else:
+                            inner_lines.append(way)
+                if outer_lines:
+                    outers.extend(list(ops.polygonize(outer_lines)))
+                if inner_lines:
+                    inners.extend(list(ops.polygonize(inner_lines)))
+                g = ops.cascaded_union(outers)
+                if inners:
+                    g = g.difference(ops.cascaded_union(inners))
+                g.tags = tags
+                geoms.append(g)
         return geoms
 
 def parse(filename, transform=None):

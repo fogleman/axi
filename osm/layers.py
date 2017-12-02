@@ -62,6 +62,7 @@ def buildings(geoms):
 
 def water(geoms):
     gs = [g for g in geoms if g.tags.get('natural') == 'water']
+    gs += [g for g in geoms if g.tags.get('natural') == 'coastline']
     waves = []
     for g in gs:
         waves.append(util.waves(g, 3 / 1000*2, 18 / 1000*2, 12 / 1000*2))

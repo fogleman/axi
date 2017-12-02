@@ -10,22 +10,28 @@ import sys
 import util
 
 CARY = 35.787196, -78.783337
+BOSTON = 42.3583, -71.0610
 BUDAPEST = 47.498206, 19.052509
 
-LAT, LNG = CARY
+LAT, LNG = BOSTON
 
 ROTATION_DEGREES = 0
-MAP_WIDTH_KM = 4
+MAP_WIDTH_KM = 2
 PAGE_WIDTH_IN = 12
 PAGE_HEIGHT_IN = 8.5
 ASPECT_RATIO = PAGE_WIDTH_IN / PAGE_HEIGHT_IN
 
 def crop_geom(g, w, h):
-    result = util.centered_crop(g, w, h)
-    if result.is_empty:
+    tags = g.tags
+    if not g.is_valid:
+        g = g.buffer(0)
+    if g.is_empty:
         return None
-    result.tags = g.tags
-    return result
+    g = util.centered_crop(g, w, h)
+    if g.is_empty:
+        return None
+    g.tags = tags
+    return g
 
 def main():
     args = sys.argv[1:]
