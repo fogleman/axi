@@ -63,9 +63,8 @@ def buildings(geoms):
 def water(geoms):
     gs = [g for g in geoms if g.tags.get('natural') == 'water']
     waves = []
-    # for g in gs:
-    #     waves.append(util.waves(g, 3 / 1000, 12 / 1000))
+    for g in gs:
+        waves.append(util.waves(g, 3 / 1000*2, 18 / 1000*2, 12 / 1000*2))
     gs += [g for g in geoms if 'waterway' in g.tags]
     g = ops.cascaded_union(gs)
-    return g
     return geometry.collection.GeometryCollection([g] + waves)

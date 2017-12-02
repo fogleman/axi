@@ -10,6 +10,11 @@ def centered_rectangle(w, h):
     return rectangle(-w / 2, -h / 2, w, h)
 
 def centered_crop(g, w, h):
+    x0, y0, x1, y1 = g.bounds
+    if x1 < -w / 2 or x0 > w / 2:
+        return geometry.LineString()
+    if y1 < -h / 2 or y0 > h / 2:
+        return geometry.LineString()
     return g.intersection(geometry.Polygon(centered_rectangle(w, h)))
 
 def circle(cx, cy, r, revs=1, points_per_rev=360):
@@ -35,11 +40,13 @@ def star(x, y, r):
     return points[0::2] + points[1::2]
 
 def wave(px, py, r, n=360):
-    p1 = arc(px - r, py, r, math.pi / 2, 0, n)
-    p2 = arc(px + r, py, r, -math.pi, -3 * math.pi / 2, n)
+    e = math.pi / 6
+    p1 = arc(px - r, py, r, math.pi / 2 + e, 0, n)
+    p2 = arc(px + r, py, r, -math.pi, -3 * math.pi / 2 - e, n)
     return p1 + p2
 
-def waves(g, r, s):
+def waves(g, r, sx, sy):
+    shape = wave(0, 0, r)
     lines = []
     x0, y0, x1, y1 = g.bounds
     y = y0
@@ -47,11 +54,12 @@ def waves(g, r, s):
     while y < y1:
         x = x0
         if i % 2:
-            x += s / 2
+            x += sx / 2
         while x < x1:
-            lines.append(wave(x, y, r))
-            x += s
-        y += s
+            translated = [(x + wx, y + wy) for wx, wy in shape]
+            lines.append(translated)
+            x += sx
+        y += sy
         i += 1
     lines = geometry.MultiLineString(lines)
     return g.intersection(lines)
