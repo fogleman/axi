@@ -1,4 +1,6 @@
-from math import asin, cos, radians, sin, sqrt
+from __future__ import division
+
+from math import *
 
 EARTH_RADIUS_KM = 6371
 
@@ -9,6 +11,13 @@ def haversine(lat1, lng1, lat2, lng2):
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlng/2)**2
     return asin(sqrt(a)) * 2 * EARTH_RADIUS_KM
 
+def kilometer_scale(projection, lng, lat):
+    km = 1
+    dlng = degrees(2 * asin(sin(km / (2 * EARTH_RADIUS_KM)) / cos(radians(lat))))
+    x1, _ = projection.project(lng, lat)
+    x2, _ = projection.project(lng + dlng, lat)
+    return 1 / abs(x2 - x1)
+
 class LambertAzimuthalEqualArea(object):
     def __init__(self, lng, lat, rotation_degrees=0):
         self.lng = lng
@@ -16,7 +25,7 @@ class LambertAzimuthalEqualArea(object):
         self.cos = cos(radians(rotation_degrees))
         self.sin = sin(radians(rotation_degrees))
         self.scale = 1
-        self.scale = self.kilometer_scale()
+        self.scale = kilometer_scale(self, lng, lat)
     def project(self, lng, lat):
         lng, lat = radians(lng), radians(lat)
         clng, clat = radians(self.lng), radians(self.lat)
@@ -27,13 +36,3 @@ class LambertAzimuthalEqualArea(object):
         rx = x * self.cos - y * self.sin
         ry = y * self.cos + x * self.sin
         return (rx * s, -ry * s)
-    def kilometer_scale(self):
-        e = 1e-3
-        lng, lat = self.lng, self.lat
-        km_per_lng = haversine(lat, lng - e, lat, lng + e) / (2 * e)
-        km_per_lat = haversine(lat - e, lng, lat + e, lng) / (2 * e)
-        x1, y1 = self.project(lat - 1 / km_per_lat, lng - 1 / km_per_lng)
-        x2, y2 = self.project(lat + 1 / km_per_lat, lng + 1 / km_per_lng)
-        sx = 2 / (x2 - x1)
-        sy = 2 / (y1 - y2)
-        return (sx + sy) / 2

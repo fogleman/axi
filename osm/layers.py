@@ -46,8 +46,8 @@ def railroads(geoms):
     paths = []
     for g in gs:
         if isinstance(g, geometry.LineString):
-            s = 4 / 1000
-            for x, y, a in util.interpolated_points(g, 24 / 1000):
+            s = 3 / 1000
+            for x, y, a in util.interpolated_points(g, 18 / 1000):
                 x1 = x + math.cos(a + math.pi / 2) * s
                 y1 = y + math.sin(a + math.pi / 2) * s
                 x2 = x + math.cos(a - math.pi / 2) * s
@@ -61,11 +61,12 @@ def buildings(geoms):
     return geometry.collection.GeometryCollection(gs)
 
 def water(geoms):
+    s = 1
     gs = [g for g in geoms if g.tags.get('natural') == 'water']
     gs += [g for g in geoms if g.tags.get('natural') == 'coastline']
     waves = []
     for g in gs:
-        waves.append(util.waves(g, 3 / 1000*2, 18 / 1000*2, 12 / 1000*2))
-    gs += [g for g in geoms if 'waterway' in g.tags]
+        waves.append(util.waves(g, 3 / 1000*s, 18 / 1000*s, 12 / 1000*s))
+    # gs += [g for g in geoms if 'waterway' in g.tags]
     g = ops.cascaded_union(gs)
     return geometry.collection.GeometryCollection([g] + waves)
