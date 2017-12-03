@@ -133,11 +133,12 @@ class Drawing(object):
         return drawing.scale(scale, scale).center(width, height)
 
     def remove_paths_outside(self, width, height):
+        e = 1e-8
         paths = []
         for path in self.paths:
             ok = True
             for x, y in path:
-                if x < 0 or y < 0 or x > width or y > height:
+                if x < -e or y < -e or x > width + e or y > height + e:
                     ok = False
                     break
             if ok:
