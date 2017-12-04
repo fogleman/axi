@@ -14,6 +14,21 @@ class Drawing(object):
         self.paths = paths or []
         self._bounds = None
 
+    @classmethod
+    def loads(cls, data):
+        paths = []
+        for line in data.split('\n'):
+            points = line.strip().split()
+            points = [map(float, x.split(',')) for x in points]
+            paths.append(points)
+        return cls(paths)
+
+    def dumps(self):
+        lines = []
+        for path in self.paths:
+            lines.append(' '.join('%f,%f' % (x, y) for x, y in path))
+        return '\n'.join(lines)
+
     @property
     def bounds(self):
         if not self._bounds:
