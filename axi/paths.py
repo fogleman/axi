@@ -64,10 +64,12 @@ def join_paths(paths, tolerance):
     return result
 
 def crop_interpolate(x1, y1, x2, y2, ax, ay, bx, by):
-    t1 = (x1 - ax) / (bx - ax)
-    t2 = (y1 - ay) / (by - ay)
-    t3 = (x2 - ax) / (bx - ax)
-    t4 = (y2 - ay) / (by - ay)
+    dx = bx - ax
+    dy = by - ay
+    t1 = (x1 - ax) / dx if dx else -1
+    t2 = (y1 - ay) / dy if dy else -1
+    t3 = (x2 - ax) / dx if dx else -1
+    t4 = (y2 - ay) / dy if dy else -1
     ts = [t1, t2, t3, t4]
     ts = [t for t in ts if t >= 0 and t <= 1]
     t = min(ts)
@@ -76,12 +78,13 @@ def crop_interpolate(x1, y1, x2, y2, ax, ay, bx, by):
     return (x, y)
 
 def crop_path(path, x1, y1, x2, y2):
+    e = 1e-9
     result = []
     buf = []
     previous_point = None
     previous_inside = False
     for x, y in path:
-        inside = x >= x1 and y >= y1 and x <= x2 and y <= y2
+        inside = x >= x1 - e and y >= y1 - e and x <= x2 + e and y <= y2 + e
         if inside:
             if not previous_inside and previous_point:
                 px, py = previous_point

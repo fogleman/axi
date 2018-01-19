@@ -20,14 +20,24 @@ class Drawing(object):
         for line in data.split('\n'):
             points = line.strip().split()
             points = [map(float, x.split(',')) for x in points]
-            paths.append(points)
+            if points:
+                paths.append(points)
         return cls(paths)
+
+    @classmethod
+    def load(cls, filename):
+        with open(filename, 'r') as fp:
+            return cls.loads(fp.read())
 
     def dumps(self):
         lines = []
         for path in self.paths:
             lines.append(' '.join('%f,%f' % (x, y) for x, y in path))
         return '\n'.join(lines)
+
+    def dump(self, filename):
+        with open(filename, 'w') as fp:
+            fp.write(self.dumps())
 
     @property
     def bounds(self):
@@ -148,11 +158,12 @@ class Drawing(object):
         return drawing.scale(scale, scale).center(width, height)
 
     def remove_paths_outside(self, width, height):
+        e = 1e-8
         paths = []
         for path in self.paths:
             ok = True
             for x, y in path:
-                if x < 0 or y < 0 or x > width or y > height:
+                if x < -e or y < -e or x > width + e or y > height + e:
                     ok = False
                     break
             if ok:
