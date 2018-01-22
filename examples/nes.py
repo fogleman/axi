@@ -5,13 +5,13 @@ import numpy as np
 import os
 import sys
 
-NUMBER = 4
-TITLE = 'Five Seconds of Balloon Fight'
+NUMBER = 5
+TITLE = 'Five Seconds of Donkey Kong'
 LABEL = '#%s' % NUMBER
 
-COLUMNS = 8
+COLUMNS = 6
 SECONDS = 5
-FRAME_OFFSET = 120
+FRAME_OFFSET = -150
 MIN_CHANGES = 1
 
 def stack_drawings(ds, spacing=0):
