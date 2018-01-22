@@ -91,9 +91,10 @@ def main():
 
     print d.bounds
 
-    d.render(scale=109 * 1, line_width=0.3/25.4).write_to_png('nes/%d.png' % NUMBER)
-    d.dump_svg('nes/%d.svg' % NUMBER)
     d.dump('nes/%d.axi' % NUMBER)
+    rotated = d.rotate(90).center(8.5, 12)
+    rotated.render(scale=109 * 1, line_width=0.3/25.4).write_to_png('nes/%d.png' % NUMBER)
+    rotated.dump_svg('nes/%d.svg' % NUMBER)
     # print sum(x.t for x in axi.Device().plan_drawing(d)) / 60
     # axi.draw(d)
 
