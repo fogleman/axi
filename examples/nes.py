@@ -4,8 +4,32 @@ import axi
 import numpy as np
 import sys
 
-COLUMNS = 8
+COLUMNS = 6
 SECONDS = 5
+
+TEXT = ['Five Seconds of Donkey Kong']
+FONT = axi.FUTURAM
+
+def stack_drawings(ds, spacing=0):
+    result = axi.Drawing()
+    y = 0
+    for d in ds:
+        d = d.origin().translate(-d.width / 2, y)
+        result.add(d)
+        y += d.height + spacing
+    return result
+
+def text():
+    ds = [axi.Drawing(axi.text(line, FONT)).scale_to_fit_height(1) for line in TEXT]
+    d = stack_drawings(ds, 0.1)
+    # d = d.scale_to_fit(12, 8.5)
+    d = d.scale_to_fit(12, 0.25)
+    # d = d.move(6, 0, 0.5, 0)
+    # d = d.translate(0, 0.01)
+    d = d.move(6, 8.5, 0.5, 1)
+    d = d.translate(0, -0.01)
+    d = d.join_paths(0.01)
+    return d
 
 def main():
     with open(sys.argv[1], 'r') as fp:
@@ -51,13 +75,18 @@ def main():
         paths.append(path)
     d = axi.Drawing(paths)
     print 'transforming paths'
-    d = d.scale(12 / d.width, 8.5 / d.height)
+    d = d.scale(8.85 / d.width, 12 / d.height)
     print 'sorting paths'
     d = d.sort_paths()
     print 'rendering paths'
+
+    d = stack_drawings([d, text()], 0.25)
+    d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
+
     d.render(scale=109 * 1, line_width=0.3/25.4).write_to_png('out.png')
     d.dump_svg('out.svg')
-    # axi.draw(d)
+    # print sum(x.t for x in axi.Device().plan_drawing(d)) / 60
+    axi.draw(d)
 
 if __name__ == '__main__':
     main()

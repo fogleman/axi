@@ -15,6 +15,10 @@ LINES = [
     'Anything your heart desires will come to you',
 ]
 
+LINES = [
+    'Five Seconds of Donkey Kong'
+]
+
 def stack_drawings(ds, spacing=0):
     result = axi.Drawing()
     y = 0
@@ -25,7 +29,7 @@ def stack_drawings(ds, spacing=0):
     return result
 
 def main():
-    font = axi.SCRIPTS
+    font = axi.FUTURAM
     ds = [axi.Drawing(axi.text(line, font)).scale_to_fit_height(1) for line in LINES]
     d = stack_drawings(ds, 0.1)
     # d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
@@ -33,13 +37,18 @@ def main():
     # d = d.center(12, 8.5)
     # d = d.move(0, 0, 0, 0)
     d = d.scale_to_fit(12, 8.5)
+    d = d.scale_to_fit(12, 0.25)
     # d = d.center(12, 8.5)
     d = d.move(6, 0, 0.5, 0)
     d = d.translate(0, 0.01)
+
+    d = d.move(6, 8.5, 0.5, 1)
+    d = d.translate(0, -0.01)
+
     d = d.join_paths(0.01)
     d.render().write_to_png('out.png')
     print sum(x.t for x in axi.Device().plan_drawing(d))
-    # axi.draw(d)
+    axi.draw(d)
 
 if __name__ == '__main__':
     main()
