@@ -2,6 +2,7 @@ from __future__ import division
 
 import axi
 import numpy as np
+import os
 import sys
 
 NUMBER = 1
@@ -100,10 +101,16 @@ def main():
     print d.bounds
 
     # save outputs
-    d.dump('nes/%d.axi' % NUMBER)
+    dirname = 'nes/%d' % NUMBER
+    try:
+        os.makedirs(dirname)
+    except Exception:
+        pass
+    d.dump(os.path.join(dirname, 'out.axi'))
     rotated = d.rotate(90).center(8.5, 12)
-    rotated.render(scale=109 * 1, line_width=0.3/25.4).write_to_png('nes/%d.png' % NUMBER)
-    rotated.dump_svg('nes/%d.svg' % NUMBER)
+    rotated.dump_svg(os.path.join(dirname, 'out.svg'))
+    im = rotated.render(scale=109 * 1, line_width=0.3/25.4)
+    im.write_to_png(os.path.join(dirname, 'out.png'))
 
 if __name__ == '__main__':
     main()
