@@ -39,7 +39,10 @@ def main():
     paths = create_paths(Image.open(sys.argv[1]))
     drawing = axi.Drawing(paths).rotate_and_scale_to_fit(11, 8.5, step=90)
     drawing = drawing.sort_paths().join_paths(0.02)
-    axi.draw(drawing)
+    if len(sys.argv) > 2 and sys.argv[2].endswith(".png"):
+        drawing.render().write_to_png(sys.argv[2])
+    else:
+        axi.draw(drawing)
 
 if __name__ == '__main__':
     main()

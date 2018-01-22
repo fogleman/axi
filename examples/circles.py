@@ -1,6 +1,7 @@
 import axi
 import math
 import random
+import sys
 
 def circle(cx, cy, r, n):
     points = []
@@ -35,8 +36,10 @@ def main():
     add(0, 0, 64, paths)
     drawing = axi.Drawing(paths).rotate_and_scale_to_fit(11, 8.5).sort_paths()
     im = drawing.render()
-    im.write_to_png('out.png')
-    axi.draw(drawing)
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".png"):
+        drawing.render().write_to_png(sys.argv[1])
+    else:
+        axi.draw(drawing)
 
 if __name__ == '__main__':
     main()

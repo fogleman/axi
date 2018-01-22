@@ -1,6 +1,7 @@
 import axi
 import random
 import time
+import sys
 
 from math import hypot, atan2, sin, cos, pi
 
@@ -64,7 +65,10 @@ def main():
         paths.append(path)
 
     drawing = axi.Drawing(paths).sort_paths().simplify_paths(0.001)
-    axi.draw(drawing)
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".png"):
+        drawing.render().write_to_png(sys.argv[1])
+    else:
+        axi.draw(drawing)
 
 if __name__ == '__main__':
     main()

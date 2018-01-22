@@ -1,5 +1,6 @@
 import axi
 import random
+import sys
 
 from collections import defaultdict
 from math import pi, sin, cos, hypot, floor
@@ -129,8 +130,10 @@ def main():
     points, pairs = poisson_disc(0, 0, 11, 8.5, 0.035, 32)
     path = make_path(pairs)
     drawing = axi.Drawing([path]).scale_to_fit(11, 8.5)
-    drawing.render().write_to_png('out.png')
-    axi.draw(drawing)
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".png"):
+        drawing.render().write_to_png(sys.argv[1])
+    else:
+        axi.draw(drawing)
 
 if __name__ == '__main__':
     main()
