@@ -32,6 +32,8 @@ def main():
     elif command == 'goto':
         x, y = map(float, args)
         device.goto(x, y)
+    elif command == 'draw':
+        axi.draw(args[0])
     else:
         pass
 
