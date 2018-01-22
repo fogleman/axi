@@ -5,12 +5,14 @@ import numpy as np
 import os
 import sys
 
-NUMBER = 1
-TITLE = 'Five Seconds of Donkey Kong'
-LABEL = '#%d' % NUMBER
+NUMBER = 4
+TITLE = 'Five Seconds of Balloon Fight'
+LABEL = '#%s' % NUMBER
 
-COLUMNS = 6
+COLUMNS = 8
 SECONDS = 5
+FRAME_OFFSET = 120
+MIN_CHANGES = 1
 
 def stack_drawings(ds, spacing=0):
     result = axi.Drawing()
@@ -55,13 +57,14 @@ def main():
 
     # trim to SECONDS worth of data
     n = len(data[0])
-    m = SECONDS * 60 / 2
-    a = max(0, int(n // 2 - m))
-    b = min(n, int(n // 2 + m))
+    m = int(SECONDS * 60 / 2)
+    mid = int(n // 2) + FRAME_OFFSET
+    a = max(0, mid - m)
+    b = min(n, mid + m)
     data = [x[a:b] for x in data]
 
     # remove addresses with too few values
-    data = [x for x in data if len(set(x)) > 1]
+    data = [x for x in data if len(set(x)) > MIN_CHANGES]
 
     print '%d series that changed' % len(data)
 
@@ -101,7 +104,7 @@ def main():
     print d.bounds
 
     # save outputs
-    dirname = 'nes/%d' % NUMBER
+    dirname = 'nes/%s' % NUMBER
     try:
         os.makedirs(dirname)
     except Exception:
