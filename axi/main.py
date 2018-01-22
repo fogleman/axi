@@ -3,7 +3,6 @@ import sys
 
 '''
 TODO:
-axi draw FILE
 axi (repl)
 '''
 
@@ -33,7 +32,8 @@ def main():
         x, y = map(float, args)
         device.goto(x, y)
     elif command == 'draw':
-        axi.draw(args[0])
+        d = axi.Drawing.load(args[0])
+        axi.draw(d)
     else:
         pass
 
