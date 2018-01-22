@@ -4,11 +4,12 @@ import axi
 import numpy as np
 import sys
 
+NUMBER = 1
+TITLE = 'Five Seconds of Donkey Kong'
+LABEL = '#%d' % NUMBER
+
 COLUMNS = 6
 SECONDS = 5
-
-TEXT = ['Five Seconds of Donkey Kong']
-FONT = axi.FUTURAM
 
 def stack_drawings(ds, spacing=0):
     result = axi.Drawing()
@@ -19,15 +20,18 @@ def stack_drawings(ds, spacing=0):
         y += d.height + spacing
     return result
 
-def text():
-    ds = [axi.Drawing(axi.text(line, FONT)).scale_to_fit_height(1) for line in TEXT]
-    d = stack_drawings(ds, 0.1)
-    # d = d.scale_to_fit(12, 8.5)
-    d = d.scale_to_fit(12, 0.25)
-    # d = d.move(6, 0, 0.5, 0)
-    # d = d.translate(0, 0.01)
+def title():
+    d = axi.Drawing(axi.text(TITLE, axi.FUTURAM))
+    d = d.scale_to_fit_height(0.25)
     d = d.move(6, 8.5, 0.5, 1)
-    d = d.translate(0, -0.01)
+    d = d.join_paths(0.01)
+    return d
+
+def label():
+    d = axi.Drawing(axi.text(LABEL, axi.FUTURAL))
+    d = d.scale_to_fit_height(0.125)
+    d = d.rotate(-90)
+    d = d.move(12, 8.5, 1, 1)
     d = d.join_paths(0.01)
     return d
 
@@ -75,18 +79,23 @@ def main():
         paths.append(path)
     d = axi.Drawing(paths)
     print 'transforming paths'
-    d = d.scale(8.85 / d.width, 12 / d.height)
+    d = d.scale(8.5 / d.width, (12 - 0.5) / d.height)
     print 'sorting paths'
     d = d.sort_paths()
     print 'rendering paths'
 
-    d = stack_drawings([d, text()], 0.25)
-    d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
+    d = stack_drawings([d, title()], 0.25)
+    d = d.rotate(-90)
+    d = d.center(12, 8.5)
+    d.add(label())
 
-    d.render(scale=109 * 1, line_width=0.3/25.4).write_to_png('out.png')
-    d.dump_svg('out.svg')
+    print d.bounds
+
+    d.render(scale=109 * 1, line_width=0.3/25.4).write_to_png('nes/%d.png' % NUMBER)
+    d.dump_svg('nes/%d.svg' % NUMBER)
+    d.dump('nes/%d.axi' % NUMBER)
     # print sum(x.t for x in axi.Device().plan_drawing(d)) / 60
-    axi.draw(d)
+    # axi.draw(d)
 
 if __name__ == '__main__':
     main()
