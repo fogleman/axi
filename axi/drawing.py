@@ -163,21 +163,37 @@ class Drawing(object):
         return self.scale_to_fit(width, 1e9, padding)
 
     def scale_to_fit(self, width, height, padding=0):
-        width -= padding * 2
-        height -= padding * 2
-        scale = min(width / self.width, height / self.height)
+        s_width = width - padding * 2
+        s_height = height - padding * 2
+        scale = min(s_width / self.width, s_height / self.height)
         return self.scale(scale, scale).center(width, height)
 
     def rotate_and_scale_to_fit(self, width, height, padding=0, step=5):
         drawings = []
-        width -= padding * 2
-        height -= padding * 2
+        s_width = width - padding * 2
+        s_height = height - padding * 2
         for angle in range(0, 180, step):
             drawing = self.rotate(angle)
-            scale = min(width / drawing.width, height / drawing.height)
+            scale = min(s_width / drawing.width, s_height / drawing.height)
             drawings.append((scale, drawing))
         scale, drawing = max(drawings)
         return drawing.scale(scale, scale).center(width, height)
+
+    def crop(self, width, height):
+        paths = []
+        for path in self.paths:
+            ok = True
+            new_path = []
+            for x, y in path:
+                if x < 0 or y < 0 or x > width or y > height:
+                    if new_path:
+                        paths.append(new_path)
+                        new_path = []
+                else:
+                    new_path.append((x,y))
+            if new_path:
+                paths.append(new_path)
+        return Drawing(paths)
 
     def remove_paths_outside(self, width, height):
         e = 1e-8
