@@ -5,14 +5,36 @@ import numpy as np
 import os
 import sys
 
-NUMBER = 5
-TITLE = 'Five Seconds of Donkey Kong'
+NUMBER = '19'
+TITLE = 'Fifteen Seconds of The Legend of Zelda'
 LABEL = '#%s' % NUMBER
 
-COLUMNS = 6
-SECONDS = 5
-FRAME_OFFSET = -150
-MIN_CHANGES = 1
+COLUMNS = 8
+SECONDS = 15
+FRAME_OFFSET = 600
+MIN_CHANGES = 2
+UNIQUE = False
+SIMPLIFY = 5
+
+def simplify_sparkline(values, n):
+    if not n:
+        return values
+    result = []
+    previous = None
+    for x, y in enumerate(values):
+        if result:
+            window = result[-n:]
+            lo = min(window)
+            hi = max(window)
+            if y >= lo and y <= hi:
+                result.append(result[-1])
+                previous = y
+                continue
+        if previous is not None:
+            result[-1] = previous
+        result.append(y)
+        previous = y
+    return result
 
 def stack_drawings(ds, spacing=0):
     result = axi.Drawing()
@@ -52,7 +74,6 @@ def main():
     # read values and transpose
     data = [map(int, line.split(',')) for line in lines]
     data = np.transpose(data)
-
     print '%d series in file' % len(data)
 
     # trim to SECONDS worth of data
@@ -65,12 +86,23 @@ def main():
 
     # remove addresses with too few values
     data = [x for x in data if len(set(x)) > MIN_CHANGES]
-
     print '%d series that changed' % len(data)
+
+    # remove duplicate series
+    if UNIQUE:
+        new_data = []
+        seen = set()
+        for x in data:
+            k = tuple(x)
+            if k in seen:
+                continue
+            seen.add(k)
+            new_data.append(x)
+        data = new_data
+        print '%d unique series' % len(data)
 
     # trim so all rows are full
     data = data[:int((len(data) // COLUMNS) * COLUMNS)]
-
     print '%d series after trimming' % len(data)
 
     print '%d data points each' % len(data[0])
@@ -78,6 +110,7 @@ def main():
     # create sparklines in a grid pattern
     paths = []
     for i, row in enumerate(data):
+        row = simplify_sparkline(row, SIMPLIFY)
         r = i // COLUMNS
         c = i % COLUMNS
         lo = min(row)

@@ -175,8 +175,9 @@ class Drawing(object):
         for angle in range(0, 180, step):
             drawing = self.rotate(angle)
             scale = min(width / drawing.width, height / drawing.height)
-            drawings.append((scale, drawing))
-        scale, drawing = max(drawings)
+            drawings.append((scale, angle, drawing))
+        scale, angle, drawing = max(drawings)
+        print angle
         return drawing.scale(scale, scale).center(width, height)
 
     def remove_paths_outside(self, width, height):
