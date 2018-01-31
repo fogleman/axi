@@ -5,16 +5,16 @@ import numpy as np
 import os
 import sys
 
-NUMBER = '19'
-TITLE = 'Fifteen Seconds of The Legend of Zelda'
+NUMBER = '20'
+TITLE = 'Ten Seconds of Bubble Bobble'
 LABEL = '#%s' % NUMBER
 
-COLUMNS = 8
-SECONDS = 15
-FRAME_OFFSET = 600
-MIN_CHANGES = 2
+COLUMNS = 6
+SECONDS = 10
+FRAME_OFFSET = 0
+MIN_CHANGES = 1
 UNIQUE = False
-SIMPLIFY = 5
+SIMPLIFY = 0 # 5
 
 def simplify_sparkline(values, n):
     if not n:
@@ -100,6 +100,9 @@ def main():
             new_data.append(x)
         data = new_data
         print '%d unique series' % len(data)
+
+    # delete repetitive stuff
+    # del data[136:136+8*14]
 
     # trim so all rows are full
     data = data[:int((len(data) // COLUMNS) * COLUMNS)]
