@@ -6,7 +6,7 @@ from .planner import Planner
 from .turtle import Turtle
 from .util import draw, reset
 
-from .hershey import text
+from .hershey import text, justify_text
 from .hershey_fonts import (
     ASTROLOGY,
     CURSIVE,
