@@ -1,0 +1,190 @@
+from collections import defaultdict
+from shapely import geometry
+
+import axi
+import math
+import random
+
+def fill_circle(cx, cy, r1, r2, revs, points_per_rev):
+    points = []
+    a0 = random.random() * 2 * math.pi
+    n = revs * points_per_rev
+    for i in range(n + 1):
+        a = a0 + revs * 2 * math.pi * i / n
+        r = r1 + (r2 - r1) * min(1, float(i) / (n - points_per_rev))
+        x = cx + math.cos(a) * r
+        y = cy + math.sin(a) * r
+        points.append((x, y))
+    return points
+
+def random_row(n):
+    return bin(random.getrandbits(n) | (1 << n))[3:]
+
+def compute_row(rule, previous):
+    row = []
+    previous = '00' + previous + '00'
+    for i in range(len(previous) - 2):
+        x = int(previous[i:i+3], 2)
+        y = '1' if rule & (1 << x) else '0'
+        row.append(y)
+    return ''.join(row)
+
+def compute_rows(rule, n):
+    # rows = ['1']
+    rows = [random_row(256)]
+    for _ in range(n - 1):
+        rows.append(compute_row(rule, rows[-1]))
+    return rows
+
+def pad(rows):
+    result = []
+    n = len(max(rows, key=len))
+    for row in rows:
+        p = (n - len(row)) / 2 + 1
+        row = '.' * p + row + '.' * p
+        result.append(row)
+    return result
+
+def trim(rows):
+    return [row.strip('.') for row in rows]
+
+def crop(rows):
+    w = len(rows[0])
+    h = len(rows)
+    n = int(h * 0.165)
+    i = w / 2 - n / 2
+    j = i + n
+    return [row[i:j] for row in rows]#[-int(n*1.375*3):]]
+
+def crop_diagonal(rows):
+    rows = trim(rows)
+    result = []
+    for i, row in enumerate(rows):
+        if i < len(rows) / 2:
+            result.append(row)
+        else:
+            j = 2 * (i - len(rows) / 2 + 1)
+            result.append(row[j:-j])
+    return result
+
+def trim_pair(pair, d):
+    line = geometry.LineString(pair)
+    p1 = line.interpolate(d)
+    p2 = line.interpolate(line.length - d)
+    return ((p1.x, p1.y), (p2.x, p2.y))
+
+def form_pairs(rows):
+    pairs = []
+    rows = pad(rows)
+    for y, row in enumerate(rows):
+        if y == 0:
+            continue
+        for x, value in enumerate(row):
+            if value != '1':
+                continue
+            i = x - len(rows[-1]) / 2
+            j = y
+            if rows[y - 1][x - 1] == '1':
+                pairs.append(((i - 1, j - 1), (i, j)))
+            if rows[y - 1][x] == '1':
+                pairs.append(((i, j - 1), (i, j)))
+            if rows[y - 1][x + 1] == '1':
+                pairs.append(((i + 1, j - 1), (i, j)))
+    points = set()
+    for (x1, y1), (x2, y2) in pairs:
+        points.add((x1, y1))
+        points.add((x2, y2))
+    return pairs, points
+
+def create_drawing(rule, h):
+    # print rule
+    rows = compute_rows(rule, h)
+    rows = pad(rows)
+    # rows = crop_diagonal(rows)
+    rows = crop(rows)
+    rows = pad(rows)
+    pairs, points = form_pairs(rows)
+    counts = defaultdict(int)
+    for a, b in pairs:
+        counts[a] += 1
+        counts[b] += 1
+    # paths = [trim_pair(x, 0.25) for x in pairs]
+    paths = pairs
+    circle = axi.Drawing([fill_circle(0, 0, 0, 0.3, 3, 100)])
+    # paths = []
+    # paths = random.sample(pairs, len(pairs) / 2)
+    for x, y in points:
+        if counts[(x, y)] != 1:
+            continue
+        paths.extend(circle.translate(x, y).paths)
+        continue
+        r = 0.3
+        # r = random.gauss(0.125, 0.075)
+        # if r < 0:
+        #     continue
+        revs = int(math.ceil(r / 0.125)) + 1
+        paths.append(fill_circle(x, y, 0, r, revs, 100))
+    d = axi.Drawing(paths)
+    return d
+
+def stack_drawings(ds, spacing=0):
+    result = axi.Drawing()
+    x = 0
+    for d in ds:
+        d = d.origin().translate(x, -d.height / 2)
+        result.add(d)
+        x += d.width + spacing
+    return result
+
+def title(text):
+    d = axi.Drawing(axi.text(text, axi.FUTURAM))
+    d = d.scale_to_fit_height(0.2)
+    d = d.move(6, 8.5, 0.5, 1)
+    d = d.join_paths(0.01)
+    d = d.rotate(-90)
+    return d
+
+def main():
+    rule = 150
+    seed = 37
+    random.seed(seed)
+    h = 128
+
+    rules = [30, 60, 90, 106, 150, 105, 122, 154]
+    ds = []
+    bs = []
+    sizer = axi.HorizontalSizer()
+    for rule in rules:
+        d = create_drawing(rule, h)
+        ds.append(d)
+        b = axi.Box(d.width, d.height)
+        bs.append(b)
+        sizer.add(b)
+        sizer.add_spacer(2)
+    sizer.fit()
+    drawing = axi.Drawing()
+    for d, b in zip(ds, bs):
+        x, y, w, h = b.dimensions
+        d = d.move(x + w / 2, y + h / 2, 0.5, 0.5)
+        drawing.add(d)
+    d = drawing
+
+    # d = create_drawing(rule, h)
+    # d = d.rotate(-90)
+    d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
+    # d = stack_drawings([d, title('Rule %d' % rule)], 0.2)
+    # d = d.scale_to_fit(12, 8.5)
+    print 'sorting paths'
+    d = d.sort_paths()
+    print 'joining paths'
+    d = d.join_paths(0.01)
+    print 'simplifying paths'
+    d = d.simplify_paths(0.001)
+    print d.bounds
+    d.dump('out%04d.axi' % seed)
+    im = d.render(scale=109 * 1, line_width=0.3/25.4)
+    im.write_to_png('out%04d.png' % seed)
+    # axi.draw(d)
+
+if __name__ == '__main__':
+    main()

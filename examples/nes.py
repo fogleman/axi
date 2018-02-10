@@ -5,16 +5,16 @@ import numpy as np
 import os
 import sys
 
-NUMBER = '20'
-TITLE = 'Ten Seconds of Bubble Bobble'
+NUMBER = '?'
+TITLE = 'Five Seconds of Donkey Kong'
 LABEL = '#%s' % NUMBER
 
 COLUMNS = 6
-SECONDS = 10
+SECONDS = 5
 FRAME_OFFSET = 0
 MIN_CHANGES = 1
 UNIQUE = False
-SIMPLIFY = 0 # 5
+SIMPLIFY = 0
 
 def simplify_sparkline(values, n):
     if not n:
@@ -125,7 +125,7 @@ def main():
         path = []
         for j, value in enumerate(row):
             x = (j / len(row) + c * 1.1)
-            y = 1-value + r * 1.5
+            y = 1 - value + r * 1.5
             path.append((x, y))
         paths.append(path)
     d = axi.Drawing(paths)
