@@ -2,7 +2,8 @@ from __future__ import division
 
 from math import sin, cos, radians
 
-from .paths import simplify_paths, sort_paths, join_paths, crop_paths
+from .paths import (
+    simplify_paths, sort_paths, join_paths, crop_paths, convex_hull)
 
 try:
     import cairo
@@ -62,9 +63,17 @@ class Drawing(object):
             fp.write(self.dumps_svg())
 
     @property
+    def points(self):
+        return [(x, y) for path in self.paths for x, y in path]
+
+    @property
+    def convex_hull(self):
+        return convex_hull(self.points)
+
+    @property
     def bounds(self):
         if not self._bounds:
-            points = [(x, y) for path in self.paths for x, y in path]
+            points = self.points
             if points:
                 x1 = min(x for x, y in points)
                 x2 = max(x for x, y in points)
@@ -168,16 +177,18 @@ class Drawing(object):
         scale = min(width / self.width, height / self.height)
         return self.scale(scale, scale).center(width, height)
 
-    def rotate_and_scale_to_fit(self, width, height, padding=0, step=5):
-        drawings = []
+    def rotate_and_scale_to_fit(self, width, height, padding=0, step=1):
+        values = []
         width -= padding * 2
         height -= padding * 2
+        hull = Drawing([self.convex_hull])
         for angle in range(0, 180, step):
-            drawing = self.rotate(angle)
-            scale = min(width / drawing.width, height / drawing.height)
-            drawings.append((scale, angle, drawing))
-        scale, angle, drawing = max(drawings)
-        return drawing.scale(scale, scale).center(width, height)
+            d = hull.rotate(angle)
+            scale = min(width / d.width, height / d.height)
+            print angle, d.width, d.height
+            values.append((scale, angle))
+        scale, angle = max(values)
+        return self.rotate(angle).scale(scale, scale).center(width, height)
 
     def remove_paths_outside(self, width, height):
         e = 1e-8
@@ -192,11 +203,13 @@ class Drawing(object):
                 paths.append(path)
         return Drawing(paths)
 
-    def render(self, scale=109, margin=1, line_width=0.5/25.4, show_bounds=True):
+    def render(self, scale=109, margin=1, line_width=0.5/25.4,
+            use_axi_bounds=True, show_axi_bounds=True):
         if cairo is None:
             raise Exception('Drawing.render() requires cairo')
-        # x1, y1, x2, y2 = self.bounds
-        x1, y1, x2, y2 = (0, 0, 12, 8.5)
+        x1, y1, x2, y2 = self.bounds
+        if use_axi_bounds:
+            x1, y1, x2, y2 = (0, 0, 12, 8.5)
         w = x2 - x1
         h = y2 - y1
         margin *= scale
@@ -211,7 +224,7 @@ class Drawing(object):
         dc.translate(-x1, -y1)
         dc.set_source_rgb(1, 1, 1)
         dc.paint()
-        if show_bounds:
+        if show_axi_bounds:
             dc.set_source_rgb(0.5, 0.5, 0.5)
             dc.set_line_width(1 / scale)
             dc.rectangle(0, 0, 12, 8.5)

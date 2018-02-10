@@ -1,5 +1,5 @@
 from math import hypot
-from shapely.geometry import LineString
+from shapely import geometry
 
 from .spatial import Index
 
@@ -17,7 +17,7 @@ def load_paths(filename):
 def simplify_path(points, tolerance):
     if len(points) < 2:
         return points
-    line = LineString(points)
+    line = geometry.LineString(points)
     line = line.simplify(tolerance, preserve_topology=False)
     return list(line.coords)
 
@@ -109,3 +109,13 @@ def crop_paths(paths, x1, y1, x2, y2):
     for path in paths:
         result.extend(crop_path(path, x1, y1, x2, y2))
     return result
+
+def convex_hull(points):
+    hull = geometry.MultiPoint(points).convex_hull
+    if isinstance(hull, geometry.Polygon):
+        return list(hull.exterior.coords)
+    if isinstance(hull, geometry.LineString):
+        return list(hull.coords)
+    if isinstance(hull, geometry.Point):
+        return list(hull.coords)
+    raise Exception('unhandled convex hull geometry')

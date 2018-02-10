@@ -84,15 +84,16 @@ def main():
     ds = []
     for filename, angle in zip(filenames, angles):
         ds.append(axi.Drawing(axi.load_paths(filename)).scale_to_fit(8.5, 12).scale(1, -1))
-    d = grid_drawings(ds, 2, 1)
+    # d = grid_drawings(ds, 2, 1)
+    d = ds[0]
     print len(d.paths)
     print 'joining paths'
     d = d.join_paths(0.01)
     print len(d.paths)
     print 'transforming paths'
     # d = d.scale(1, -1)
-    d = d.rotate_and_scale_to_fit(8.5, 12 - text.height - 0.75, step=5)
-    d = d.origin()
+    d = d.rotate_and_scale_to_fit(8.5, 12 - text.height - 0.75)
+    # d = d.origin()
     print 'sorting paths'
     d = d.sort_paths()
     print 'joining paths'
