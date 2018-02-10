@@ -26,7 +26,7 @@ def star(x, y, r):
     return points[0::2] + points[1::2]
 
 def main():
-    points = poisson_disc(0, 0, 11, 8.5, 0.4, 64)
+    points = poisson_disc(0, 0, 12, 8.5, 0.4, 64)
     index = Index(points)
     paths = []
     for x1, y1 in points:
@@ -36,10 +36,10 @@ def main():
         d = math.hypot(x2 - x1, y2 - y1)
         paths.append(star(x1, y1, d / 2))
     drawing = axi.Drawing(paths)
-    drawing = drawing.remove_paths_outside(11, 8.5)
+    drawing = drawing.remove_paths_outside(12, 8.5)
     drawing = drawing.sort_paths()
-    # im = drawing.render()
-    # im.write_to_png('out.png')
+    im = drawing.render()
+    im.write_to_png('out.png')
     axi.draw(drawing)
 
 if __name__ == '__main__':

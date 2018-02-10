@@ -177,7 +177,6 @@ class Drawing(object):
             scale = min(width / drawing.width, height / drawing.height)
             drawings.append((scale, angle, drawing))
         scale, angle, drawing = max(drawings)
-        print angle
         return drawing.scale(scale, scale).center(width, height)
 
     def remove_paths_outside(self, width, height):
@@ -193,11 +192,11 @@ class Drawing(object):
                 paths.append(path)
         return Drawing(paths)
 
-    def render(self, scale=109, margin=1, line_width=0.5/25.4):
+    def render(self, scale=109, margin=1, line_width=0.5/25.4, show_bounds=True):
         if cairo is None:
             raise Exception('Drawing.render() requires cairo')
-        x1, y1, x2, y2 = self.bounds
-        # x1, y1, x2, y2 = (0, 0, 12, 8.5)
+        # x1, y1, x2, y2 = self.bounds
+        x1, y1, x2, y2 = (0, 0, 12, 8.5)
         w = x2 - x1
         h = y2 - y1
         margin *= scale
@@ -212,10 +211,11 @@ class Drawing(object):
         dc.translate(-x1, -y1)
         dc.set_source_rgb(1, 1, 1)
         dc.paint()
-        # dc.set_source_rgb(0.5, 0.5, 0.5)
-        # dc.set_line_width(1 / scale)
-        # dc.rectangle(x1, y1, w, h)
-        # dc.stroke()
+        if show_bounds:
+            dc.set_source_rgb(0.5, 0.5, 0.5)
+            dc.set_line_width(1 / scale)
+            dc.rectangle(0, 0, 12, 8.5)
+            dc.stroke()
         dc.set_source_rgb(0, 0, 0)
         dc.set_line_width(line_width)
         for path in self.paths:
