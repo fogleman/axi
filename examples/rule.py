@@ -8,7 +8,7 @@ import random
 def circle(cx, cy, r, revs, points_per_rev):
     points = []
     a0 = random.random() * 2 * math.pi
-    n = revs * points_per_rev
+    n = int(revs * points_per_rev)
     for i in range(n + 1):
         a = a0 + revs * 2 * math.pi * i / n
         x = cx + math.cos(a) * r
@@ -19,7 +19,7 @@ def circle(cx, cy, r, revs, points_per_rev):
 def fill_circle(cx, cy, r1, r2, revs, points_per_rev):
     points = []
     a0 = random.random() * 2 * math.pi
-    n = revs * points_per_rev
+    n = int(revs * points_per_rev)
     for i in range(n + 1):
         a = a0 + revs * 2 * math.pi * i / n
         r = r1 + (r2 - r1) * min(1, float(i) / (n - points_per_rev))
@@ -114,6 +114,7 @@ def create_drawing(rule, h):
     # rows = crop_diagonal(rows)
     rows = crop(rows)
     rows = pad(rows)
+    print len(rows[0]), len(rows)
     pairs, points = form_pairs(rows)
     counts = defaultdict(int)
     for a, b in pairs:
@@ -121,7 +122,7 @@ def create_drawing(rule, h):
         counts[b] += 1
     # paths = [trim_pair(x, 0.25) for x in pairs]
     paths = pairs
-    circle = axi.Drawing([fill_circle(0, 0, 0, 0.25, 4, 100)])
+    circle = axi.Drawing([fill_circle(0, 0, 0, 0.25, 3.5, 100)])
     # paths = []
     # paths = random.sample(pairs, len(pairs) / 2)
     for x, y in points:
@@ -166,15 +167,15 @@ def decoder(rule):
             x = i * 4 + j
             on = i & (1 << j)
             if on:
-                paths.append(fill_circle(x, 0, 0, 0.4, 10, 100))
+                paths.append(fill_circle(x, 0, 0, 0.4, 8.5, 100))
             else:
-                paths.append(circle(x, 0, 0.4, 2, 100))
+                paths.append(circle(x, 0, 0.4, 2.5, 100))
         x = i * 4 + 1
         on = rule & (1 << i)
         if on:
-            paths.append(fill_circle(x, 1, 0, 0.4, 10, 100))
+            paths.append(fill_circle(x, 1, 0, 0.4, 8.5, 100))
         else:
-            paths.append(circle(x, 1, 0.4, 2, 100))
+            paths.append(circle(x, 1, 0.4, 2.5, 100))
     d = axi.Drawing(paths)
     d = d.scale_to_fit_width(8.5 * 2 / 3)
     d = d.scale(-1, 1)
