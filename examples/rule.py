@@ -5,6 +5,17 @@ import axi
 import math
 import random
 
+def circle(cx, cy, r, revs, points_per_rev):
+    points = []
+    a0 = random.random() * 2 * math.pi
+    n = revs * points_per_rev
+    for i in range(n + 1):
+        a = a0 + revs * 2 * math.pi * i / n
+        x = cx + math.cos(a) * r
+        y = cy + math.sin(a) * r
+        points.append((x, y))
+    return points
+
 def fill_circle(cx, cy, r1, r2, revs, points_per_rev):
     points = []
     a0 = random.random() * 2 * math.pi
@@ -51,7 +62,7 @@ def trim(rows):
 def crop(rows):
     w = len(rows[0])
     h = len(rows)
-    n = int(h * 0.165)
+    n = int(h * 0.8025)
     i = w / 2 - n / 2
     j = i + n
     return [row[i:j] for row in rows]#[-int(n*1.375*3):]]
@@ -110,24 +121,26 @@ def create_drawing(rule, h):
         counts[b] += 1
     # paths = [trim_pair(x, 0.25) for x in pairs]
     paths = pairs
-    circle = axi.Drawing([fill_circle(0, 0, 0, 0.3, 3, 100)])
+    circle = axi.Drawing([fill_circle(0, 0, 0, 0.25, 4, 100)])
     # paths = []
     # paths = random.sample(pairs, len(pairs) / 2)
     for x, y in points:
         if counts[(x, y)] != 1:
             continue
         paths.extend(circle.translate(x, y).paths)
-        continue
-        r = 0.3
-        # r = random.gauss(0.125, 0.075)
-        # if r < 0:
-        #     continue
-        revs = int(math.ceil(r / 0.125)) + 1
-        paths.append(fill_circle(x, y, 0, r, revs, 100))
     d = axi.Drawing(paths)
     return d
 
-def stack_drawings(ds, spacing=0):
+def vertical_stack(ds, spacing=0):
+    result = axi.Drawing()
+    y = 0
+    for d in ds:
+        d = d.origin().translate(-d.width / 2, y)
+        result.add(d)
+        y += d.height + spacing
+    return result
+
+def horizontal_stack(ds, spacing=0):
     result = axi.Drawing()
     x = 0
     for d in ds:
@@ -136,12 +149,35 @@ def stack_drawings(ds, spacing=0):
         x += d.width + spacing
     return result
 
-def title(text):
-    d = axi.Drawing(axi.text(text, axi.FUTURAM))
-    d = d.scale_to_fit_height(0.2)
-    d = d.move(6, 8.5, 0.5, 1)
+def title(rule):
+    d1 = axi.Drawing(axi.text('Rule %d' % rule, axi.FUTURAM))
+    d1 = d1.scale_to_fit_height(0.25)
+    d2 = axi.Drawing(axi.text('Elementary Cellular Automaton', axi.FUTURAL))
+    d2 = d2.scale_to_fit_height(0.1875)
+    ds = [d1, d2]
+    d = vertical_stack(ds, 0.125)
     d = d.join_paths(0.01)
-    d = d.rotate(-90)
+    return d
+
+def decoder(rule):
+    paths = []
+    for i in range(8):
+        for j in range(3):
+            x = i * 4 + j
+            on = i & (1 << j)
+            if on:
+                paths.append(fill_circle(x, 0, 0, 0.4, 10, 100))
+            else:
+                paths.append(circle(x, 0, 0.4, 2, 100))
+        x = i * 4 + 1
+        on = rule & (1 << i)
+        if on:
+            paths.append(fill_circle(x, 1, 0, 0.4, 10, 100))
+        else:
+            paths.append(circle(x, 1, 0.4, 2, 100))
+    d = axi.Drawing(paths)
+    d = d.scale_to_fit_width(8.5 * 2 / 3)
+    d = d.scale(-1, 1)
     return d
 
 def main():
@@ -150,30 +186,17 @@ def main():
     random.seed(seed)
     h = 128
 
-    rules = [30, 60, 90, 106, 150, 105, 122, 154]
-    ds = []
-    bs = []
-    sizer = axi.HorizontalSizer()
-    for rule in rules:
-        d = create_drawing(rule, h)
-        ds.append(d)
-        b = axi.Box(d.width, d.height)
-        bs.append(b)
-        sizer.add(b)
-        sizer.add_spacer(2)
-    sizer.fit()
-    drawing = axi.Drawing()
-    for d, b in zip(ds, bs):
-        x, y, w, h = b.dimensions
-        d = d.move(x + w / 2, y + h / 2, 0.5, 0.5)
-        drawing.add(d)
-    d = drawing
+    # rules = [30, 60, 90, 106, 150, 105, 122, 154]
+    # ds = []
+    # for rule in rules:
+    #     d = create_drawing(rule, h)
+    #     ds.append(d)
+    # d = horizontal_stack(ds, 2)
 
-    # d = create_drawing(rule, h)
-    # d = d.rotate(-90)
+    d = create_drawing(rule, h)
+    d = d.scale_to_fit_width(8.5)
+    d = vertical_stack([title(rule), d, decoder(rule)], 0.25)
     d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
-    # d = stack_drawings([d, title('Rule %d' % rule)], 0.2)
-    # d = d.scale_to_fit(12, 8.5)
     print 'sorting paths'
     d = d.sort_paths()
     print 'joining paths'
@@ -181,9 +204,9 @@ def main():
     print 'simplifying paths'
     d = d.simplify_paths(0.001)
     print d.bounds
-    d.dump('out%04d.axi' % seed)
-    im = d.render(scale=109 * 1, line_width=0.3/25.4)
-    im.write_to_png('out%04d.png' % seed)
+    d.dump('out.axi')
+    im = d.render(scale=109 * 1, line_width=0.3/25.4, show_axi_bounds=False)
+    im.write_to_png('out.png')
     # axi.draw(d)
 
 if __name__ == '__main__':
