@@ -40,10 +40,9 @@ def compute_row(rule, previous):
         row.append(y)
     return ''.join(row)
 
-def compute_rows(rule, n):
-    # rows = ['1']
-    rows = [random_row(256)]
-    for _ in range(n - 1):
+def compute_rows(rule, w, h):
+    rows = [random_row(w * 16)]
+    for _ in range(h - 1):
         rows.append(compute_row(rule, rows[-1]))
     return rows
 
@@ -59,13 +58,12 @@ def pad(rows):
 def trim(rows):
     return [row.strip('.') for row in rows]
 
-def crop(rows):
+def crop(rows, n):
     w = len(rows[0])
     h = len(rows)
-    n = int(h * 0.8025)
     i = w / 2 - n / 2
     j = i + n
-    return [row[i:j] for row in rows]#[-int(n*1.375*3):]]
+    return [row[i:j] for row in rows]
 
 def crop_diagonal(rows):
     rows = trim(rows)
@@ -107,13 +105,12 @@ def form_pairs(rows):
         points.add((x2, y2))
     return pairs, points
 
-def create_drawing(rule, h):
+def create_drawing(rule, w, h):
     # print rule
-    rows = compute_rows(rule, h)
+    rows = compute_rows(rule, w, h)
     rows = pad(rows)
-    # rows = crop_diagonal(rows)
-    rows = crop(rows)
-    rows = pad(rows)
+    rows = crop(rows, w)
+    # rows = pad(rows)
     print len(rows[0]), len(rows)
     pairs, points = form_pairs(rows)
     counts = defaultdict(int)
@@ -122,7 +119,7 @@ def create_drawing(rule, h):
         counts[b] += 1
     # paths = [trim_pair(x, 0.25) for x in pairs]
     paths = pairs
-    circle = axi.Drawing([fill_circle(0, 0, 0, 0.25, 3.5, 100)])
+    circle = axi.Drawing([fill_circle(0, 0, 0, 0.2, 2.5, 100)])
     # paths = []
     # paths = random.sample(pairs, len(pairs) / 2)
     for x, y in points:
@@ -181,7 +178,7 @@ def decoder(rule):
     d = d.scale(-1, 1)
     return d
 
-def main():
+def single():
     rule = 150
     seed = 37
     random.seed(seed)
@@ -197,7 +194,8 @@ def main():
     d = create_drawing(rule, h)
     d = d.scale_to_fit_width(8.5)
     d = vertical_stack([title(rule), d, decoder(rule)], 0.25)
-    d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
+    d = d.rotate(-90)
+    d = d.scale_to_fit(12, 8.5)
     print 'sorting paths'
     d = d.sort_paths()
     print 'joining paths'
@@ -209,6 +207,46 @@ def main():
     im = d.render(scale=109 * 1, line_width=0.3/25.4, show_axi_bounds=False)
     im.write_to_png('out.png')
     # axi.draw(d)
+
+def multiple():
+    w = 32
+    h = 137
+
+    # rules = [x for x in range(256) if bin(x).count('1') == 4]
+    # rules = [18, 22, 26, 30, 41, 45, 54, 60, 73, 90, 105, 106, 110, 122, 126, 146, 150, 154]
+    # rules = sorted(random.sample(rules, 6))
+    # print rules
+
+    # rules = sorted([22, 30, 60, 90, 106, 150, 105, 122, 154])
+    rules = sorted([22, 30, 60, 90, 106, 150])
+    ds = []
+    for rule in rules:
+        d1 = create_drawing(rule, w, h)
+        d1 = d1.scale_to_fit_height(8)
+        d2 = axi.Drawing(axi.text('Rule %d' % rule, axi.FUTURAL))
+        d2 = d2.scale_to_fit_height(0.125)
+        d = vertical_stack([d1, d2], 0.125)
+        ds.append(d)
+    title = axi.Drawing(axi.text('Elementary Cellular Automata', axi.FUTURAM))
+    title = title.scale_to_fit_height(0.25)
+    d = horizontal_stack(ds, 0.25)
+    d = vertical_stack([title, d], 0.2)
+    d = d.scale_to_fit(12, 8.5)
+    # print 'sorting paths'
+    # d = d.sort_paths()
+    # print 'joining paths'
+    # d = d.join_paths(0.01)
+    # print 'simplifying paths'
+    # d = d.simplify_paths(0.001)
+    print d.bounds
+    d.dump('out.axi')
+    im = d.render(scale=109 * 1, line_width=0.3/25.4, show_axi_bounds=False)
+    im.write_to_png('out.png')
+    # axi.draw(d)
+
+def main():
+    # single()
+    multiple()
 
 if __name__ == '__main__':
     main()
