@@ -4,6 +4,7 @@ from shapely import geometry
 import axi
 import math
 import random
+import time
 
 def circle(cx, cy, r, revs, points_per_rev):
     points = []
@@ -191,6 +192,8 @@ def label(text):
     return d
 
 def single(number, rule, seed):
+    if seed is None:
+        seed = int(time.time() * 1000) % 100000
     path = '%d-%d-%d' % (number, rule, seed)
     random.seed(seed)
     # rule = 90
@@ -260,10 +263,12 @@ def multiple():
     # axi.draw(d)
 
 def main():
-    number = 26
+    number = 29
     rule = 90
-    for seed in [3]:
-        single(number, rule, seed)
+    seed = None
+    single(number, rule, seed)
+    # for seed in range(10, 20):
+    #     single(number, rule, seed)
     # multiple()
 
 if __name__ == '__main__':
