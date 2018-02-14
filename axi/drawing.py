@@ -3,7 +3,8 @@ from __future__ import division
 from math import sin, cos, radians
 
 from .paths import (
-    simplify_paths, sort_paths, join_paths, crop_paths, convex_hull)
+    simplify_paths, sort_paths, join_paths, crop_paths, convex_hull,
+    expand_quadratics)
 
 try:
     import cairo
@@ -19,10 +20,11 @@ class Drawing(object):
     def loads(cls, data):
         paths = []
         for line in data.split('\n'):
-            points = line.strip().split()
-            points = [map(float, x.split(',')) for x in points]
-            if points:
-                paths.append(points)
+            path = line.strip().split()
+            path = [map(float, x.split(',')) for x in path]
+            path = expand_quadratics(path)
+            if path:
+                paths.append(path)
         return cls(paths)
 
     @classmethod
