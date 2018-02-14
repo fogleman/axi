@@ -119,7 +119,7 @@ def create_drawing(rule, w, h):
         counts[b] += 1
     # paths = [trim_pair(x, 0.25) for x in pairs]
     paths = pairs
-    circle = axi.Drawing([fill_circle(0, 0, 0, 0.2, 2.5, 100)])
+    circle = axi.Drawing([fill_circle(0, 0, 0, 0.25, 2.5, 100)])
     # paths = []
     # paths = random.sample(pairs, len(pairs) / 2)
     for x, y in points:
@@ -179,32 +179,27 @@ def decoder(rule):
     return d
 
 def single():
-    rule = 150
-    seed = 37
-    random.seed(seed)
+    random.seed(6)
+    rule = 110
+    w = 96
     h = 128
-
-    # rules = [30, 60, 90, 106, 150, 105, 122, 154]
-    # ds = []
-    # for rule in rules:
-    #     d = create_drawing(rule, h)
-    #     ds.append(d)
-    # d = horizontal_stack(ds, 2)
-
-    d = create_drawing(rule, h)
+    d = create_drawing(rule, w, h)
     d = d.scale_to_fit_width(8.5)
     d = vertical_stack([title(rule), d, decoder(rule)], 0.25)
     d = d.rotate(-90)
     d = d.scale_to_fit(12, 8.5)
-    print 'sorting paths'
-    d = d.sort_paths()
-    print 'joining paths'
-    d = d.join_paths(0.01)
-    print 'simplifying paths'
-    d = d.simplify_paths(0.001)
+    d = d.rotate(90)
+    # print 'sorting paths'
+    # d = d.sort_paths()
+    # print 'joining paths'
+    # d = d.join_paths(0.01)
+    # print 'simplifying paths'
+    # d = d.simplify_paths(0.001)
     print d.bounds
     d.dump('out.axi')
-    im = d.render(scale=109 * 1, line_width=0.3/25.4, show_axi_bounds=False)
+    im = d.render(
+        scale=109 * 1, line_width=0.3/25.4,
+        show_axi_bounds=False, use_axi_bounds=False)
     im.write_to_png('out.png')
     # axi.draw(d)
 
@@ -245,8 +240,8 @@ def multiple():
     # axi.draw(d)
 
 def main():
-    # single()
-    multiple()
+    single()
+    # multiple()
 
 if __name__ == '__main__':
     main()
