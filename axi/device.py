@@ -11,7 +11,7 @@ from .progress import Bar
 
 TIMESLICE_MS = 10
 
-MICROSTEPPING_MODE = 1
+MICROSTEPPING_MODE = 2
 STEP_DIVIDER = 2 ** (MICROSTEPPING_MODE - 1)
 
 STEPS_PER_INCH = 2032 / STEP_DIVIDER
@@ -21,13 +21,13 @@ PEN_UP_POSITION = 60
 PEN_UP_SPEED = 150
 PEN_UP_DELAY = 0
 
-PEN_DOWN_POSITION = 40
+PEN_DOWN_POSITION = 45
 PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
-ACCELERATION = 4
-MAX_VELOCITY = 4
-CORNER_FACTOR = 0.005
+ACCELERATION = 8
+MAX_VELOCITY = 3
+CORNER_FACTOR = 0.001
 
 VID_PID = '04D8:FD92'
 
@@ -150,7 +150,7 @@ class Device(object):
             self.error = ex, ey
             self.stepper_move(step_ms, int(sx), int(sy))
             t += step_s
-        self.wait()
+        # self.wait()
 
     def run_path(self, path):
         planner = self.make_planner()

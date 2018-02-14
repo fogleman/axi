@@ -155,6 +155,7 @@ def title(rule):
     ds = [d1, d2]
     d = vertical_stack(ds, 0.125)
     d = d.join_paths(0.01)
+    d = d.simplify_paths(0.001)
     return d
 
 def decoder(rule):
@@ -176,31 +177,44 @@ def decoder(rule):
     d = axi.Drawing(paths)
     d = d.scale_to_fit_width(8.5 * 2 / 3)
     d = d.scale(-1, 1)
+    d = d.join_paths(0.01)
+    d = d.simplify_paths(0.001)
     return d
 
-def single():
-    random.seed(6)
-    rule = 110
+def label(text):
+    d = axi.Drawing(axi.text(text, axi.FUTURAL))
+    d = d.scale_to_fit_height(0.125)
+    d = d.rotate(-90)
+    d = d.move(12, 8.5, 1, 1)
+    d = d.join_paths(0.01)
+    d = d.simplify_paths(0.001)
+    return d
+
+def single(number, rule, seed):
+    path = '%d-%d-%d' % (number, rule, seed)
+    random.seed(seed)
+    # rule = 90
     w = 96
-    h = 128
+    h = 120
     d = create_drawing(rule, w, h)
     d = d.scale_to_fit_width(8.5)
+
+    d = d.sort_paths()
+    d = d.join_paths(0.01)
+    d = d.simplify_paths(0.001)
+
     d = vertical_stack([title(rule), d, decoder(rule)], 0.25)
     d = d.rotate(-90)
     d = d.scale_to_fit(12, 8.5)
-    d = d.rotate(90)
-    # print 'sorting paths'
-    # d = d.sort_paths()
-    # print 'joining paths'
-    # d = d.join_paths(0.01)
-    # print 'simplifying paths'
-    # d = d.simplify_paths(0.001)
-    print d.bounds
-    d.dump('out.axi')
-    im = d.render(
+    d.add(label('#%d' % number))
+
+    rotated = d.rotate(90).center(8.5, 12)
+
+    d.dump(path + '.axi')
+    im = rotated.render(
         scale=109 * 1, line_width=0.3/25.4,
         show_axi_bounds=False, use_axi_bounds=False)
-    im.write_to_png('out.png')
+    im.write_to_png(path + '.png')
     # axi.draw(d)
 
 def multiple():
@@ -227,12 +241,18 @@ def multiple():
     d = horizontal_stack(ds, 0.25)
     d = vertical_stack([title, d], 0.2)
     d = d.scale_to_fit(12, 8.5)
-    # print 'sorting paths'
-    # d = d.sort_paths()
-    # print 'joining paths'
-    # d = d.join_paths(0.01)
-    # print 'simplifying paths'
-    # d = d.simplify_paths(0.001)
+    print len(d.paths)
+    print 'joining paths'
+    d = d.join_paths(0.01)
+    print len(d.paths)
+    print 'sorting paths'
+    d = d.sort_paths()
+    print len(d.paths)
+    print 'joining paths'
+    d = d.join_paths(0.01)
+    print len(d.paths)
+    print 'simplifying paths'
+    d = d.simplify_paths(0.001)
     print d.bounds
     d.dump('out.axi')
     im = d.render(scale=109 * 1, line_width=0.3/25.4, show_axi_bounds=False)
@@ -240,7 +260,10 @@ def multiple():
     # axi.draw(d)
 
 def main():
-    single()
+    number = 26
+    rule = 90
+    for seed in [3]:
+        single(number, rule, seed)
     # multiple()
 
 if __name__ == '__main__':
