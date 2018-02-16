@@ -187,7 +187,6 @@ class Drawing(object):
         for angle in range(0, 180, step):
             d = hull.rotate(angle)
             scale = min(width / d.width, height / d.height)
-            print angle, d.width, d.height
             values.append((scale, angle))
         scale, angle = max(values)
         return self.rotate(angle).scale(scale, scale).center(width, height)
