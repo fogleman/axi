@@ -191,6 +191,14 @@ def label(text):
     d = d.simplify_paths(0.001)
     return d
 
+def multiple_label(text):
+    d = axi.Drawing(axi.text(text, axi.FUTURAL))
+    d = d.scale_to_fit_height(0.125)
+    d = d.move(0, 8.5, 0, 1)
+    d = d.join_paths(0.01)
+    d = d.simplify_paths(0.001)
+    return d
+
 def single(number, rule, seed):
     if seed is None:
         seed = int(time.time() * 1000) % 100000
@@ -244,6 +252,7 @@ def multiple():
     d = horizontal_stack(ds, 0.25)
     d = vertical_stack([title, d], 0.2)
     d = d.scale_to_fit(12, 8.5)
+    # d.add(multiple_label('#31'))
     print len(d.paths)
     print 'joining paths'
     d = d.join_paths(0.01)
@@ -263,13 +272,13 @@ def multiple():
     # axi.draw(d)
 
 def main():
-    number = 29
-    rule = 90
-    seed = None
-    single(number, rule, seed)
+    # number = 29
+    # rule = 90
+    # seed = None
+    # single(number, rule, seed)
     # for seed in range(10, 20):
     #     single(number, rule, seed)
-    # multiple()
+    multiple()
 
 if __name__ == '__main__':
     main()
