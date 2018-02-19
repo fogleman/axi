@@ -6,10 +6,11 @@ from math import modf
 from serial import Serial
 from serial.tools.list_ports import comports
 
+from .paths import path_length
 from .planner import Planner
 from .progress import Bar
 
-TIMESLICE_MS = 10
+TIMESLICE_MS = 20
 
 MICROSTEPPING_MODE = 2
 STEP_DIVIDER = 2 ** (MICROSTEPPING_MODE - 1)
@@ -27,7 +28,7 @@ PEN_DOWN_DELAY = 0
 
 ACCELERATION = 8
 MAX_VELOCITY = 4
-CORNER_FACTOR = 0.005
+CORNER_FACTOR = 0.0025
 
 VID_PID = '04D8:FD92'
 
@@ -160,13 +161,15 @@ class Device(object):
     def run_drawing(self, drawing, progress=True):
         self.pen_up()
         position = (0, 0)
-        bar = Bar(enabled=progress)
-        for path in bar(drawing.paths):
+        bar = Bar(drawing.length, enabled=progress)
+        for path in drawing.paths:
             self.run_path([position, path[0]])
             self.pen_down()
             self.run_path(path)
             self.pen_up()
             position = path[-1]
+            bar.increment(path_length(path))
+        bar.done()
         self.run_path([position, (0, 0)])
 
     def plan_drawing(self, drawing):

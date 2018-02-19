@@ -4,7 +4,7 @@ from math import sin, cos, radians
 
 from .paths import (
     simplify_paths, sort_paths, join_paths, crop_paths, convex_hull,
-    expand_quadratics)
+    expand_quadratics, paths_length)
 
 try:
     import cairo
@@ -14,7 +14,12 @@ except ImportError:
 class Drawing(object):
     def __init__(self, paths=None):
         self.paths = paths or []
+        self.dirty()
+
+    def dirty(self):
         self._bounds = None
+        self._length = None
+        self._hull = None
 
     @classmethod
     def loads(cls, data):
@@ -70,11 +75,13 @@ class Drawing(object):
 
     @property
     def convex_hull(self):
-        return convex_hull(self.points)
+        if self._hull is None:
+            self._hull = convex_hull(self.points)
+        return self._hull
 
     @property
     def bounds(self):
-        if not self._bounds:
+        if self._bounds is None:
             points = self.points
             if points:
                 x1 = min(x for x, y in points)
@@ -85,6 +92,12 @@ class Drawing(object):
                 x1 = x2 = y1 = y2 = 0
             self._bounds = (x1, y1, x2, y2)
         return self._bounds
+
+    @property
+    def length(self):
+        if self._length is None:
+            self._length = paths_length(self.paths)
+        return self._length
 
     @property
     def width(self):
@@ -124,7 +137,7 @@ class Drawing(object):
 
     def add(self, drawing):
         self.paths.extend(drawing.paths)
-        self._bounds = None
+        self.dirty()
 
     def transform(self, func):
         return Drawing([[func(x, y) for x, y in path] for path in self.paths])

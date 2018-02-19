@@ -1,4 +1,5 @@
 from math import hypot
+from pyhull.convex_hull import ConvexHull
 from shapely import geometry
 
 from .spatial import Index
@@ -13,6 +14,15 @@ def load_paths(filename):
             path = [tuple(map(float, x.split(','))) for x in points]
             paths.append(path)
     return paths
+
+def path_length(points):
+    result = 0
+    for (x1, y1), (x2, y2) in zip(points, points[1:]):
+        result += hypot(x2 - x1, y2 - y1)
+    return result
+
+def paths_length(paths):
+    return sum([path_length(path) for path in paths], 0)
 
 def simplify_path(points, tolerance):
     if len(points) < 2:
@@ -111,14 +121,9 @@ def crop_paths(paths, x1, y1, x2, y2):
     return result
 
 def convex_hull(points):
-    hull = geometry.MultiPoint(points).convex_hull
-    if isinstance(hull, geometry.Polygon):
-        return list(hull.exterior.coords)
-    if isinstance(hull, geometry.LineString):
-        return list(hull.coords)
-    if isinstance(hull, geometry.Point):
-        return list(hull.coords)
-    raise Exception('unhandled convex hull geometry')
+    hull = ConvexHull(points)
+    vertices = set(i for v in hull.vertices for i in v)
+    return [hull.points[i] for i in vertices]
 
 def quadratic_path(x0, y0, x1, y1, x2, y2):
     n = int(hypot(x1 - x0, y1 - y0) + hypot(x2 - x1, y2 - y1))

@@ -46,6 +46,9 @@ class Bar(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
 
+    def increment(self, delta):
+        self.update(self.value + delta)
+
     def update(self, value):
         self.value = value
         if self.enabled:
