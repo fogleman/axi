@@ -26,9 +26,12 @@ PEN_DOWN_POSITION = 45
 PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
-ACCELERATION = 8
-MAX_VELOCITY = 4
-CORNER_FACTOR = 0.0025
+ACCELERATION = 5
+MAX_VELOCITY = 1
+CORNER_FACTOR = 0.005
+
+JOG_ACCELERATION = 8
+JOG_MAX_VELOCITY = 6
 
 VID_PID = '04D8:FD92'
 
@@ -50,6 +53,8 @@ class Device(object):
         self.acceleration = ACCELERATION
         self.max_velocity = MAX_VELOCITY
         self.corner_factor = CORNER_FACTOR
+        self.jog_acceleration = JOG_ACCELERATION
+        self.jog_max_velocity = JOG_MAX_VELOCITY
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -79,9 +84,14 @@ class Device(object):
     def close(self):
         self.serial.close()
 
-    def make_planner(self):
-        return Planner(
-            self.acceleration, self.max_velocity, self.corner_factor)
+    def make_planner(self, jog=False):
+        a = self.acceleration
+        vmax = self.max_velocity
+        cf = self.corner_factor
+        if jog:
+            a = self.jog_acceleration
+            vmax = self.jog_max_velocity
+        return Planner(a, vmax, cf)
 
     def readline(self):
         return self.serial.readline().strip()
@@ -95,12 +105,13 @@ class Device(object):
     def move(self, dx, dy):
         self.run_path([(0, 0), (dx, dy)])
 
-    def goto(self, x, y):
+    def goto(self, x, y, jog=False):
+        # TODO: jog if pen up
         px, py = self.read_position()
-        self.run_path([(px, py), (x, y)])
+        self.run_path([(px, py), (x, y)], jog)
 
     def home(self):
-        self.goto(0, 0)
+        self.goto(0, 0, True)
 
     # misc commands
     def version(self):
@@ -153,8 +164,8 @@ class Device(object):
             t += step_s
         # self.wait()
 
-    def run_path(self, path):
-        planner = self.make_planner()
+    def run_path(self, path, jog=False):
+        planner = self.make_planner(jog)
         plan = planner.plan(path)
         self.run_plan(plan)
 
@@ -163,14 +174,14 @@ class Device(object):
         position = (0, 0)
         bar = Bar(drawing.length, enabled=progress)
         for path in drawing.paths:
-            self.run_path([position, path[0]])
+            self.run_path([position, path[0]], jog=True)
             self.pen_down()
             self.run_path(path)
             self.pen_up()
             position = path[-1]
             bar.increment(path_length(path))
         bar.done()
-        self.run_path([position, (0, 0)])
+        self.run_path([position, (0, 0)], jog=True)
 
     def plan_drawing(self, drawing):
         result = []
