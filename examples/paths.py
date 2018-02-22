@@ -14,7 +14,7 @@ def main():
     # print len(d.paths)
     print 'transforming paths'
     # d = d.scale(1, -1)
-    d = d.rotate(180)
+    # d = d.rotate(180)
     d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
     print 'sorting paths'
     d = d.sort_paths()

@@ -26,12 +26,12 @@ PEN_DOWN_POSITION = 45
 PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
-ACCELERATION = 5
+ACCELERATION = 6
 MAX_VELOCITY = 1
-CORNER_FACTOR = 0.005
+CORNER_FACTOR = 0.005*3
 
 JOG_ACCELERATION = 8
-JOG_MAX_VELOCITY = 6
+JOG_MAX_VELOCITY = 5
 
 VID_PID = '04D8:FD92'
 
@@ -170,6 +170,11 @@ class Device(object):
         self.run_plan(plan)
 
     def run_drawing(self, drawing, progress=True):
+        print 'number of paths : %d' % len(drawing.paths)
+        print 'pen down length : %g' % drawing.down_length
+        print 'pen up length   : %g' % drawing.up_length
+        print 'total length    : %g' % drawing.length
+        print 'drawing bounds  : %s' % str(drawing.bounds)
         self.pen_up()
         position = (0, 0)
         bar = Bar(drawing.length, enabled=progress)
