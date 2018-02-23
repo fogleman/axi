@@ -179,7 +179,9 @@ class Device(object):
         position = (0, 0)
         bar = Bar(drawing.length, enabled=progress)
         for path in drawing.paths:
-            self.run_path([position, path[0]], jog=True)
+            jog = [position, path[0]]
+            self.run_path(jog, jog=True)
+            bar.increment(path_length(jog))
             self.pen_down()
             self.run_path(path)
             self.pen_up()
