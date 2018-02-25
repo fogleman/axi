@@ -97,7 +97,7 @@ class Drawing(object):
     @property
     def length(self):
         if self._length is None:
-            length = self._down_length
+            length = self.down_length
             for p0, p1 in zip(self.paths, self.paths[1:]):
                 x0, y0 = p0[-1]
                 x1, y1 = p1[0]
