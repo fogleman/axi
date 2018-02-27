@@ -156,3 +156,26 @@ def expand_quadratics(path):
         else:
             raise Exception('invalid point: %r' % point)
     return result
+
+def paths_to_shapely(paths):
+    # TODO: Polygons for closed paths?
+    return geometry.MultiLineString(paths)
+
+def shapely_to_paths(g):
+    if isinstance(g, geometry.Point):
+        return []
+    elif isinstance(g, geometry.LineString):
+        return [list(g.coords)]
+    elif isinstance(g, (geometry.MultiPoint, geometry.MultiLineString, geometry.MultiPolygon, geometry.collection.GeometryCollection)):
+        paths = []
+        for x in g:
+            paths.extend(shapely_to_paths(x))
+        return paths
+    elif isinstance(g, geometry.Polygon):
+        paths = []
+        paths.append(list(g.exterior.coords))
+        for interior in g.interiors:
+            paths.extend(shapely_to_paths(interior))
+        return paths
+    else:
+        raise Exception('unhandled shapely geometry: %s' % type(g))
