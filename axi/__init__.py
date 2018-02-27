@@ -1,7 +1,19 @@
 from .device import Device
 from .drawing import Drawing
 from .lindenmayer import LSystem
-from .paths import simplify_paths, sort_paths, join_paths, load_paths
+from .paths import (
+    convex_hull,
+    crop_path,
+    crop_paths,
+    join_paths,
+    load_paths,
+    path_length,
+    paths_length,
+    quadratic_path,
+    simplify_path,
+    simplify_paths,
+    sort_paths,
+)
 from .planner import Planner
 from .turtle import Turtle
 from .util import draw, reset
