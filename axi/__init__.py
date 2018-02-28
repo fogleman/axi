@@ -20,6 +20,13 @@ from .planner import Planner
 from .turtle import Turtle
 from .util import draw, reset
 
+from .drawing import (
+    V3_SIZE,
+    V3_BOUNDS,
+    A3_SIZE,
+    A3_BOUNDS,
+)
+
 from .hershey import text, justify_text
 from .hershey_fonts import (
     ASTROLOGY,

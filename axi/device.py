@@ -10,7 +10,7 @@ from .paths import path_length
 from .planner import Planner
 from .progress import Bar
 
-TIMESLICE_MS = 20
+TIMESLICE_MS = 10
 
 MICROSTEPPING_MODE = 2
 STEP_DIVIDER = 2 ** (MICROSTEPPING_MODE - 1)
@@ -22,16 +22,16 @@ PEN_UP_POSITION = 60
 PEN_UP_SPEED = 150
 PEN_UP_DELAY = 0
 
-PEN_DOWN_POSITION = 45
+PEN_DOWN_POSITION = 40
 PEN_DOWN_SPEED = 150
 PEN_DOWN_DELAY = 0
 
-ACCELERATION = 6
-MAX_VELOCITY = 1
-CORNER_FACTOR = 0.005*3
+ACCELERATION = 8
+MAX_VELOCITY = 3
+CORNER_FACTOR = 0.005
 
-JOG_ACCELERATION = 8
-JOG_MAX_VELOCITY = 5
+JOG_ACCELERATION = 16
+JOG_MAX_VELOCITY = 8
 
 VID_PID = '04D8:FD92'
 
@@ -105,7 +105,7 @@ class Device(object):
     def move(self, dx, dy):
         self.run_path([(0, 0), (dx, dy)])
 
-    def goto(self, x, y, jog=False):
+    def goto(self, x, y, jog=True):
         # TODO: jog if pen up
         px, py = self.read_position()
         self.run_path([(px, py), (x, y)], jog)

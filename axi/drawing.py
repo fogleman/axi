@@ -11,6 +11,12 @@ try:
 except ImportError:
     cairo = None
 
+V3_SIZE = (12, 8.5)
+V3_BOUNDS = (0, 0, 12, 8.5)
+
+A3_SIZE = (16.93, 11.69)
+A3_BOUNDS = (0, 0, 16.93, 11.69)
+
 class Drawing(object):
     def __init__(self, paths=None):
         self.paths = paths or []
@@ -126,6 +132,10 @@ class Drawing(object):
         return y2 - y1
 
     @property
+    def size(self):
+        return (self.width, self.height)
+
+    @property
     def all_paths(self):
         result = []
         position = (0, 0)
@@ -234,10 +244,12 @@ class Drawing(object):
         return Drawing(paths)
 
     def render(self, scale=109, margin=1, line_width=0.5/25.4,
-            use_axi_bounds=True, show_axi_bounds=True):
+            bounds=None, show_bounds=True,
+            use_axi_bounds=False, show_axi_bounds=False):
         if cairo is None:
             raise Exception('Drawing.render() requires cairo')
-        x1, y1, x2, y2 = self.bounds
+        bounds = bounds or self.bounds
+        x1, y1, x2, y2 = bounds
         if use_axi_bounds:
             x1, y1, x2, y2 = (0, 0, 12, 8.5)
         w = x2 - x1
@@ -258,6 +270,11 @@ class Drawing(object):
             dc.set_source_rgb(0.5, 0.5, 0.5)
             dc.set_line_width(1 / scale)
             dc.rectangle(0, 0, 12, 8.5)
+            dc.stroke()
+        if show_bounds:
+            dc.set_source_rgb(0.5, 0.5, 0.5)
+            dc.set_line_width(1 / scale)
+            dc.rectangle(*bounds)
             dc.stroke()
         dc.set_source_rgb(0, 0, 0)
         dc.set_line_width(line_width)
