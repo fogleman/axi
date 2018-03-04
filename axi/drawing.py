@@ -7,7 +7,7 @@ from .paths import (
     expand_quadratics, paths_length)
 
 try:
-    import cairo
+    import cairocffi as cairo
 except ImportError:
     cairo = None
 
