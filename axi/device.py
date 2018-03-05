@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 
 import time
 
@@ -170,11 +170,11 @@ class Device(object):
         self.run_plan(plan)
 
     def run_drawing(self, drawing, progress=True):
-        print 'number of paths : %d' % len(drawing.paths)
-        print 'pen down length : %g' % drawing.down_length
-        print 'pen up length   : %g' % drawing.up_length
-        print 'total length    : %g' % drawing.length
-        print 'drawing bounds  : %s' % str(drawing.bounds)
+        print('number of paths : %d' % len(drawing.paths))
+        print('pen down length : %g' % drawing.down_length)
+        print('pen up length   : %g' % drawing.up_length)
+        print('total length    : %g' % drawing.length)
+        print('drawing bounds  : %s' % str(drawing.bounds))
         self.pen_up()
         position = (0, 0)
         bar = Bar(drawing.length, enabled=progress)

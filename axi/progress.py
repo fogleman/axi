@@ -60,7 +60,8 @@ class Bar(object):
         self.stop()
 
     def stop(self):
-        print
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
     def render(self):
         items = [

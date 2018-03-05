@@ -27,7 +27,7 @@ from .drawing import (
     A3_BOUNDS,
 )
 
-from .hershey import text, justify_text
+from .hershey import text, Font
 from .hershey_fonts import (
     ASTROLOGY,
     CURSIVE,
