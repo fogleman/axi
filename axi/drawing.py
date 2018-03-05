@@ -243,7 +243,7 @@ class Drawing(object):
                 paths.append(path)
         return Drawing(paths)
 
-    def render(self, scale=109, margin=1, line_width=0.5/25.4,
+    def render(self, scale=109, margin=1, line_width=0.35/25.4,
             bounds=None, show_bounds=True,
             use_axi_bounds=False, show_axi_bounds=False):
         if cairo is None:

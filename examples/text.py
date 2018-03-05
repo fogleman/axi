@@ -81,8 +81,8 @@ class Font(object):
         return result
 
 def main():
-    font = Font(axi.FUTURAL, 18)
-    d = font.wrap(TEXT * 2, 12, 1.5, justify=True)
+    font = Font(axi.FUTURAL, 14)
+    d = font.wrap(TEXT, 11.5, 1.5, justify=True)
     d = d.center(12, 8.5)
     d.render(bounds=axi.V3_BOUNDS).write_to_png('out.png')
 
