@@ -14,7 +14,7 @@ def main():
     d = d.rotate_and_scale_to_fit(12, 8.5, step=90)
     # d = d.sort_paths()
     # d = d.join_paths(0.015)
-    d.render().write_to_png('out.png')
+    d.render(bounds=axi.V3_BOUNDS).write_to_png('out.png')
     axi.draw(d)
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ class LSystem(object):
     def step(self, value):
         def func(match):
             rule = self.rules[match.group(0)]
-            if isinstance(rule, basestring):
+            if isinstance(rule, str):
                 return rule
             return random.choice(rule)
         return self.pattern.sub(func, value)

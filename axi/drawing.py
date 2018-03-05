@@ -244,14 +244,11 @@ class Drawing(object):
         return Drawing(paths)
 
     def render(self, scale=109, margin=1, line_width=0.35/25.4,
-            bounds=None, show_bounds=True,
-            use_axi_bounds=False, show_axi_bounds=False):
+            bounds=None, show_bounds=True):
         if cairo is None:
             raise Exception('Drawing.render() requires cairo')
         bounds = bounds or self.bounds
         x1, y1, x2, y2 = bounds
-        if use_axi_bounds:
-            x1, y1, x2, y2 = (0, 0, 12, 8.5)
         w = x2 - x1
         h = y2 - y1
         margin *= scale
@@ -266,15 +263,10 @@ class Drawing(object):
         dc.translate(-x1, -y1)
         dc.set_source_rgb(1, 1, 1)
         dc.paint()
-        if show_axi_bounds:
-            dc.set_source_rgb(0.5, 0.5, 0.5)
-            dc.set_line_width(1 / scale)
-            dc.rectangle(0, 0, 12, 8.5)
-            dc.stroke()
         if show_bounds:
             dc.set_source_rgb(0.5, 0.5, 0.5)
             dc.set_line_width(1 / scale)
-            dc.rectangle(*bounds)
+            dc.rectangle(x1, y1, w, h)
             dc.stroke()
         dc.set_source_rgb(0, 0, 0)
         dc.set_line_width(line_width)
