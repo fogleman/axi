@@ -110,8 +110,8 @@ class Device(object):
         return self.serial.readline().strip()
 
     def command(self, *args):
-        line = ','.join(map(str, args))
-        self.serial.write(line + '\r')
+        line = ','.join(map(str, args)) + '\r'
+        self.serial.write(line.encode())
         return self.readline()
 
     # higher level functions
