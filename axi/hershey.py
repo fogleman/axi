@@ -1,6 +1,10 @@
 from __future__ import division
 
+from .drawing import Drawing
 from .hershey_fonts import *
+
+import itertools
+import string
 
 def text(string, font=FUTURAL, spacing=0, extra=0):
     result = []
@@ -46,10 +50,10 @@ def _word_wrap(text, width, measure_func):
 class Font(object):
     def __init__(self, font, point_size):
         self.font = font
-        self.max_height = axi.Drawing(axi.text(string.printable, font)).height
+        self.max_height = Drawing(text(string.printable, font)).height
         self.scale = (point_size / 72) / self.max_height
-    def text(self, text):
-        d = axi.Drawing(axi.text(text, self.font))
+    def text(self, string):
+        d = Drawing(text(string, self.font))
         d = d.scale(self.scale)
         return d
     def justify_text(self, text, width):
@@ -59,7 +63,7 @@ class Font(object):
         if spaces == 0 or w >= width:
             return d
         e = ((width - w) / spaces) / self.scale
-        d = axi.Drawing(axi.text(text, self.font, extra=e))
+        d = Drawing(text(text, self.font, extra=e))
         d = d.scale(self.scale)
         return d
     def measure(self, text):
@@ -72,7 +76,7 @@ class Font(object):
             jds = [self.justify_text(line, max_width) for line in lines]
             ds = jds[:-1] + [ds[-1]]
         spacing = line_spacing * self.max_height * self.scale
-        result = axi.Drawing()
+        result = Drawing()
         y = 0
         for d in ds:
             if align == 0:
