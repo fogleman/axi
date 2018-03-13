@@ -5,7 +5,7 @@ import math
 import random
 import sys
 
-BOUNDS = axi.V3_BOUNDS
+BOUNDS = axi.A3_BOUNDS
 RADIUS = 4
 STEP = 5
 
@@ -20,6 +20,7 @@ def main():
         paths.append([(-r * c, -r * s), (r * c, r * s)])
     d = axi.Drawing(paths)
     d = d.center(w, h)
+    d = d.sort_paths()
     d.dump('out.axi')
     d.render(bounds=BOUNDS).write_to_png('out.png')
 
