@@ -90,6 +90,9 @@ class Point(_Point):
     def distance(self, other):
         return hypot(self.x - other.x, self.y - other.y)
 
+    def distance_squared(self, other):
+        return (self.x - other.x) ** 2 + (self.y - other.y) ** 2
+
     def add(self, other):
         return Point(self.x + other.x, self.y + other.y)
 
@@ -105,6 +108,18 @@ class Point(_Point):
     def lerps(self, other, s):
         v = other.sub(self).normalize()
         return self.add(v.mul(s))
+
+    def segment_distance(self, v, w):
+        p = self
+        l2 = v.distance_squared(w)
+        if l2 == 0:
+            return p.distance(v)
+        t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2
+        t = max(0, min(1, t))
+        x = v.x + t * (w.x - v.x)
+        y = v.y + t * (w.y - v.y)
+        q = Point(x, y)
+        return p.distance(q)
 
 Triangle = namedtuple('Triangle',
     ['s1', 's2', 't1', 't2', 'vmax', 'p1', 'p2', 'p3'])
@@ -158,18 +173,77 @@ class Segment(object):
         self.entry_velocity = 0
         self.blocks = []
 
+class Throttler(object):
+    def __init__(self, points, vmax, dt, threshold):
+        self.points = points
+        self.vmax = vmax
+        self.dt = dt
+        self.threshold = threshold
+        self.distances = []
+        prev = points[0]
+        d = 0
+        for point in points:
+            d += prev.distance(point)
+            self.distances.append(d)
+            prev = point
+    def lookup(self, d):
+        return bisect(self.distances, d) - 1
+    def is_feasible(self, i0, v):
+        d = v * self.dt
+        x0 = self.distances[i0]
+        x1 = x0 + d
+        i1 = self.lookup(x1)
+        if i0 == i1:
+            return True
+        p0 = self.points[i0]
+        p10 = self.points[i1]
+        try:
+            p11 = self.points[i1+1]
+        except IndexError:
+            p11 = p10
+        s = x1 - self.distances[i1]
+        p1 = p10.lerps(p11, s)
+        i = i0 + 1
+        while i <= i1:
+            p = self.points[i]
+            if p.segment_distance(p0, p1) > self.threshold:
+                return False
+            i += 1
+        return True
+    def compute_max_velocity(self, index):
+        if self.is_feasible(index, self.vmax):
+            return self.vmax
+        lo = 0
+        hi = self.vmax
+        for _ in range(16):
+            v = (lo + hi) / 2
+            if self.is_feasible(index, v):
+                lo = v
+            else:
+                hi = v
+        v = lo
+        return v
+    def compute_max_velocities(self):
+        return [self.compute_max_velocity(i) for i in range(len(self.points))]
+
 def constant_acceleration_plan(points, a, vmax, cf):
     # make sure points are Point objects
     points = [Point(x, y) for x, y in points]
+
+    # the throttler reduces speeds based on the discrete timeslicing nature of
+    # the device
+    # TODO: expose parameters
+    throttler = Throttler(points, vmax, 0.02, 0.001)
+    max_velocities = throttler.compute_max_velocities()
 
     # create segments for each consecutive pair of points
     segments = [Segment(p1, p2) for p1, p2 in zip(points, points[1:])]
 
     # compute a max_entry_velocity for each segment
     # based on the angle formed by the two segments at the vertex
-    for s1, s2 in zip(segments, segments[1:]):
-        v = corner_velocity(s1, s2, vmax, a, cf)
-        s2.max_entry_velocity = v
+    for v, s1, s2 in zip(max_velocities, segments, segments[1:]):
+        s1.max_entry_velocity = min(s1.max_entry_velocity, v)
+        s2.max_entry_velocity = corner_velocity(s1, s2, vmax, a, cf)
 
     # add a dummy segment at the end to force a final velocity of zero
     segments.append(Segment(points[-1], points[-1]))
