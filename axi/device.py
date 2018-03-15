@@ -94,7 +94,7 @@ class Device(object):
         return Planner(a, vmax, cf)
 
     def readline(self):
-        return self.serial.readline().strip()
+        return self.serial.readline().decode('utf-8').strip()
 
     def command(self, *args):
         line = ','.join(map(str, args))
