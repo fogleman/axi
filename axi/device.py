@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 import time
+import re
 
 from math import modf
 from serial import Serial
@@ -33,11 +34,23 @@ CORNER_FACTOR = 0.001
 JOG_ACCELERATION = 16
 JOG_MAX_VELOCITY = 8
 
-VID_PID = '04D8:FD92'
+VID = 0x04D8
+PID = 0xFD92
+
+def get_vid_pid(port):
+    if hasattr(port, 'vid'):
+        return (port.vid, port.pid)
+
+    match = re.search(r'VID:PID=([0-9A-Fa-f]+):([0-9A-Fa-f]+)', port[2])
+    if match:
+        return tuple(int(m, 16) for m in match.groups())
+
+    return (None, None)
+
 
 def find_port():
     for port in comports():
-        if VID_PID in port[2]:
+        if (VID, PID) == get_vid_pid(port):
             return port[0]
     return None
 
@@ -97,8 +110,8 @@ class Device(object):
         return self.serial.readline().strip()
 
     def command(self, *args):
-        line = ','.join(map(str, args))
-        self.serial.write(line + '\r')
+        line = ','.join(map(str, args)) + '\r'
+        self.serial.write(line.encode())
         return self.readline()
 
     # higher level functions
