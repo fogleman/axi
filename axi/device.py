@@ -98,7 +98,7 @@ class Device(object):
 
     def command(self, *args):
         line = ','.join(map(str, args))
-        self.serial.write(line + '\r')
+        self.serial.write((line + '\r').encode('utf-8'))
         return self.readline()
 
     # higher level functions
