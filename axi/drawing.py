@@ -33,7 +33,7 @@ class Drawing(object):
         paths = []
         for line in data.split('\n'):
             path = line.strip().split()
-            path = [map(float, x.split(',')) for x in path]
+            path = [tuple(map(float, x.split(','))) for x in path]
             path = expand_quadratics(path)
             if path:
                 paths.append(path)
