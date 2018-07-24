@@ -5,10 +5,10 @@ import fileinput
 
 BOUNDS = axi.A3_BOUNDS
 X, Y, W, H = BOUNDS
-P = 0.125
-R = 0.25
+P = 0.25
+R = 0.125
 COLS = 16
-ROWS = 24
+ROWS = 16
 N = ROWS * COLS
 
 def rectangle(x, y, w, h):
@@ -60,6 +60,7 @@ def padded_rounded_rectangle(x, y, w, h, r, p):
     return rounded_rectangle(x, y, w, h, r)
 
 def wall(x, y):
+    return [arc(x+0.5, y+0.5, 0.333, 0, 2*pi, 72)]
     x0 = x + P
     y0 = y + P
     x1 = x + 1 - P
@@ -95,25 +96,49 @@ def desc_paths(desc):
             x1, y1 = xy(i1)
             dx = x1 - x0
             dy = y1 - y0
-            paths.append(padded_rounded_rectangle(x0, y0, dx + 1, dy + 1, R, P))
+            # paths.append(padded_rounded_rectangle(x0, y0, dx + 1, dy + 1, R, P))
+            if c == 'A':
+                paths.append(padded_rectangle(x0, y0, dx + 1, dy + 1, 0.25))
+            else:
+                paths.append([(x0 + 0.5, y0 + 0.5), (x0 + dx + 0.5, y0 + dy + 0.5)])
             # if c == 'A':
-            #     paths.append(padded_rounded_rectangle(x0, y0, dx + 1, dy + 1, R, P*2))
-            #     paths.append(padded_rounded_rectangle(x0, y0, dx + 1, dy + 1, R, P*3))
+            # if stride > 1:
+            if len(ps) == 3:
+            # if stride == 1:
+            # if len(ps) == 2:
+            # if False:
+                paths.append(padded_rectangle(x0, y0, dx + 1, dy + 1, 0.35))
+                # s = 0.1
+                # p = P + s
+                # while p < 0.5:
+                #     paths.append(padded_rounded_rectangle(x0, y0, dx + 1, dy + 1, R, p))
+                #     p += s
     return paths
 
 def main():
     drawing = axi.Drawing()
+    font = axi.Font(axi.FUTURAL, 12)
     n = 0
     for line in fileinput.input():
-        desc = line.strip().split()[1]
-        if 'x' in desc:
-            continue
+        fields = line.strip().split()
+        desc = fields[1]
+        moves = int(fields[0])
+        # if 'x' in desc:
+        #     continue
         paths = desc_paths(desc)
         d = axi.Drawing(paths)
         i = n % COLS
         j = n // COLS
-        d = d.translate(i * 7, j * 7)
+        d = d.translate(i * 8, j * 10)
         drawing.add(d)
+
+        d = font.wrap(str(moves), 10)
+        d = font.wrap(bin(moves)[2:].replace('1', '\\').replace('0', '/'), 10)
+        # d = d.scale(0.1, 0.1)
+        d = d.scale_to_fit_height(1)
+        d = d.move(i * 8 + 3, j * 10 + 6.5, 0.5, 0)
+        drawing.add(d)
+
         n += 1
         if n == N:
             break
@@ -121,7 +146,7 @@ def main():
     d = drawing
     d = d.rotate_and_scale_to_fit(W, H, step=90)
     d.dump('rush.axi')
-    d.render(bounds=BOUNDS).write_to_png('rush.png')
+    d.render(bounds=None, show_bounds=False, scale=300).write_to_png('rush.png')
 
 if __name__ == '__main__':
     main()
