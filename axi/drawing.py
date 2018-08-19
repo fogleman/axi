@@ -32,7 +32,10 @@ class Drawing(object):
     def loads(cls, data):
         paths = []
         for line in data.split('\n'):
-            path = line.strip().split()
+            line = line.strip()
+            if line.startswith('#'):
+                continue
+            path = line.split()
             path = [tuple(map(float, x.split(','))) for x in path]
             path = expand_quadratics(path)
             if path:
