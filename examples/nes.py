@@ -1,20 +1,24 @@
-from __future__ import division
+from __future__ import division, print_function
 
 import axi
 import numpy as np
 import os
 import sys
 
-NUMBER = '?'
-TITLE = 'Five Seconds of Donkey Kong'
+
+W, H = 11-2, 14-2
+DW, DH = axi.A3_SIZE
+
+NUMBER = '48'
+TITLE = 'Fifteen Seconds of The Legend of Zelda'
 LABEL = '#%s' % NUMBER
 
-COLUMNS = 6
-SECONDS = 5
-FRAME_OFFSET = 0
-MIN_CHANGES = 1
+COLUMNS = 8
+SECONDS = 15
+FRAME_OFFSET = 900
+MIN_CHANGES = 2
 UNIQUE = False
-SIMPLIFY = 0
+SIMPLIFY = 5
 
 def simplify_sparkline(values, n):
     if not n:
@@ -52,11 +56,11 @@ def title():
     d = d.join_paths(0.01)
     return d
 
-def label():
+def label(x, y):
     d = axi.Drawing(axi.text(LABEL, axi.FUTURAL))
     d = d.scale_to_fit_height(0.125)
     d = d.rotate(-90)
-    d = d.move(12, 8.5, 1, 1)
+    d = d.move(x, y, 1, 1)
     d = d.join_paths(0.01)
     return d
 
@@ -72,9 +76,9 @@ def main():
     lines = filter(None, lines)
 
     # read values and transpose
-    data = [map(int, line.split(',')) for line in lines]
+    data = [tuple(map(int, line.split(','))) for line in lines]
     data = np.transpose(data)
-    print '%d series in file' % len(data)
+    print('%d series in file' % len(data))
 
     # trim to SECONDS worth of data
     n = len(data[0])
@@ -86,7 +90,7 @@ def main():
 
     # remove addresses with too few values
     data = [x for x in data if len(set(x)) > MIN_CHANGES]
-    print '%d series that changed' % len(data)
+    print('%d series that changed' % len(data))
 
     # remove duplicate series
     if UNIQUE:
@@ -99,16 +103,16 @@ def main():
             seen.add(k)
             new_data.append(x)
         data = new_data
-        print '%d unique series' % len(data)
+        print('%d unique series' % len(data))
 
     # delete repetitive stuff
-    # del data[136:136+8*14]
+    del data[136:136+8*14]
 
     # trim so all rows are full
     data = data[:int((len(data) // COLUMNS) * COLUMNS)]
-    print '%d series after trimming' % len(data)
+    print('%d series after trimming' % len(data))
 
-    print '%d data points each' % len(data[0])
+    print('%d data points each' % len(data[0]))
 
     # create sparklines in a grid pattern
     paths = []
@@ -128,16 +132,21 @@ def main():
             y = 1 - value + r * 1.5
             path.append((x, y))
         paths.append(path)
+
     d = axi.Drawing(paths)
 
     # add title and label and fit to page
-    d = d.scale(8.5 / d.width, (12 - 0.5) / d.height)
+    d = d.scale(W / d.width, (H - 0.5) / d.height)
     d = stack_drawings([d, title()], 0.25)
     d = d.rotate(-90)
-    d = d.center(12, 8.5)
-    d.add(label())
+    d = d.center(DW, DH)
+    _, _, lx, ly = d.bounds
+    d.add(label(lx, ly))
 
-    print d.bounds
+    d = d.simplify_paths(0.001)
+
+    print(d.bounds)
+    print(d.size)
 
     # save outputs
     dirname = 'nes/%s' % NUMBER
@@ -146,11 +155,10 @@ def main():
     except Exception:
         pass
     d.dump(os.path.join(dirname, 'out.axi'))
-    rotated = d.rotate(90).center(8.5, 12)
+    rotated = d.rotate(90).center(DH, DW)
     rotated.dump_svg(os.path.join(dirname, 'out.svg'))
-    im = rotated.render(
-        scale=109 * 1, line_width=0.3/25.4,
-        show_axi_bounds=False, use_axi_bounds=False)
+    x0, y0, x1, y1 = rotated.bounds
+    im = rotated.render(bounds=(x0 - 1, y0 - 1, x1 + 1, y1 + 1))
     im.write_to_png(os.path.join(dirname, 'out.png'))
 
 if __name__ == '__main__':
