@@ -92,14 +92,11 @@ class Drawing(object):
     @property
     def bounds(self):
         if self._bounds is None:
-            points = self.points
-            if points:
-                x1 = min(x for x, y in points)
-                x2 = max(x for x, y in points)
-                y1 = min(y for x, y in points)
-                y2 = max(y for x, y in points)
-            else:
-                x1 = x2 = y1 = y2 = 0
+            points = self.points + [(0, 0)]
+            x1 = min(x for x, y in points)
+            x2 = max(x for x, y in points)
+            y1 = min(y for x, y in points)
+            y2 = max(y for x, y in points)
             self._bounds = (x1, y1, x2, y2)
         return self._bounds
 
