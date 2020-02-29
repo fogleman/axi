@@ -1,8 +1,12 @@
 from math import hypot
-from pyhull.convex_hull import ConvexHull
 from shapely import geometry
 
 from .spatial import Index
+
+try:
+    from pyhull.convex_hull import ConvexHull
+except ImportError:
+    ConvexHull = None
 
 def load_paths(filename):
     paths = []
@@ -121,6 +125,9 @@ def crop_paths(paths, x1, y1, x2, y2):
     return result
 
 def convex_hull(points):
+    if ConvexHull is None:
+        raise Exception('path.convex_hull() requires pyhull')
+
     hull = ConvexHull(points)
     vertices = set(i for v in hull.vertices for i in v)
     return [hull.points[i] for i in vertices]
