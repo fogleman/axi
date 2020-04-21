@@ -34,6 +34,7 @@ class Turtle(object):
 
     def pd(self):
         self.pen = True
+        self._path = [(self.x, self.y)]
     pendown = down = pd
 
     def pu(self):
